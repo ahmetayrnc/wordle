@@ -5181,9 +5181,6 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$element = _Browser_element;
-var $author$project$Main$Letter = function (letter) {
-	return {letter: letter};
-};
 var $author$project$Main$Model = F2(
 	function (currentAttempt, previousAttempts) {
 		return {currentAttempt: currentAttempt, previousAttempts: previousAttempts};
@@ -5207,12 +5204,9 @@ var $author$project$Main$init = function (_v0) {
 				$author$project$Main$PreviousAttempt,
 				A2(
 					$elm$core$List$map,
-					$elm$core$List$map($author$project$Main$Letter),
-					A2(
-						$elm$core$List$map,
-						$elm$core$String$toList,
-						_List_fromArray(
-							['plane', 'eerie']))))),
+					$elm$core$String$toList,
+					_List_fromArray(
+						['plane', 'eerie'])))),
 		$elm$core$Platform$Cmd$none);
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
@@ -5254,12 +5248,7 @@ var $author$project$Main$addNewAttempt = F2(
 		} else {
 			var attempt = currentAttempt.a;
 			var previousAttempt = $author$project$Main$PreviousAttempt(
-				A2(
-					$elm$core$List$map,
-					function (letter) {
-						return $author$project$Main$Letter(letter);
-					},
-					$elm$core$String$toList(attempt)));
+				$elm$core$String$toList(attempt));
 			return A2(
 				$elm$core$List$append,
 				previousAttempts,
@@ -5573,10 +5562,10 @@ var $author$project$Main$word = 'siege';
 var $author$project$Main$decideLetterColor = F2(
 	function (index, letter) {
 		var letterStr = $elm$core$String$toLower(
-			$elm$core$String$fromChar(letter.letter));
+			$elm$core$String$fromChar(letter));
 		return _Utils_eq(
 			A3($elm$core$String$slice, index, index + 1, $author$project$Main$word),
-			letterStr) ? A2($author$project$Main$ColoredLetter, letter.letter, $author$project$Main$Green) : (A2($elm$core$String$contains, letterStr, $author$project$Main$word) ? A2($author$project$Main$ColoredLetter, letter.letter, $author$project$Main$Yellow) : A2($author$project$Main$ColoredLetter, letter.letter, $author$project$Main$Gray));
+			letterStr) ? A2($author$project$Main$ColoredLetter, letter, $author$project$Main$Green) : (A2($elm$core$String$contains, letterStr, $author$project$Main$word) ? A2($author$project$Main$ColoredLetter, letter, $author$project$Main$Yellow) : A2($author$project$Main$ColoredLetter, letter, $author$project$Main$Gray));
 	});
 var $author$project$Main$viewLetterColor = function (letterColor) {
 	switch (letterColor.$) {
@@ -5593,7 +5582,7 @@ var $author$project$Main$viewLetterColor = function (letterColor) {
 var $author$project$Main$viewPreviousAttempt = function (attempt) {
 	var letterText = function (letter) {
 		return $elm$html$Html$text(
-			$elm$core$String$fromChar(letter.letter));
+			$elm$core$String$fromChar(letter));
 	};
 	var letterColor = function (index) {
 		return function (letter) {

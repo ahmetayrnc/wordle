@@ -62,13 +62,8 @@ type alias ColoredLetter =
     }
 
 
-type alias Letter =
-    { letter : Char
-    }
-
-
 type alias PreviousAttempt =
-    { letters : List Letter
+    { letters : List Char
     }
 
 
@@ -80,7 +75,7 @@ type alias Model =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model (Just "") ([ "plane", "eerie" ] |> List.map String.toList |> List.map (List.map Letter) |> List.map PreviousAttempt)
+    ( Model (Just "") ([ "plane", "eerie" ] |> List.map String.toList |> List.map PreviousAttempt)
     , Cmd.none
     )
 
@@ -192,7 +187,6 @@ addNewAttempt previousAttempts currentAttempt =
                 previousAttempt =
                     attempt
                         |> String.toList
-                        |> List.map (\letter -> Letter letter)
                         |> PreviousAttempt
             in
             List.append previousAttempts [ previousAttempt ]
@@ -211,23 +205,22 @@ resetCurrentAttempt previousAttempts =
 -- COLORS
 
 
-decideLetterColor : Int -> Letter -> ColoredLetter
+decideLetterColor : Int -> Char -> ColoredLetter
 decideLetterColor index letter =
     let
         letterStr =
             letter
-                |> .letter
                 |> String.fromChar
                 |> String.toLower
     in
     if String.slice index (index + 1) word == letterStr then
-        ColoredLetter letter.letter Green
+        ColoredLetter letter Green
 
     else if String.contains letterStr word then
-        ColoredLetter letter.letter Yellow
+        ColoredLetter letter Yellow
 
     else
-        ColoredLetter letter.letter Gray
+        ColoredLetter letter Gray
 
 
 
@@ -306,7 +299,7 @@ viewPreviousAttempt attempt =
             \index -> \letter -> viewLetterColor (decideLetterColor index letter).color
 
         letterText =
-            \letter -> text (String.fromChar letter.letter)
+            \letter -> text (String.fromChar letter)
     in
     attempt.letters
         |> List.indexedMap (\index -> \letter -> div [ class "letter-box", class (letterColor index letter) ] [ letterText letter ])
