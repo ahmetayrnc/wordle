@@ -1,9 +1,11 @@
 module Main exposing (Model, Msg(..), init, main, update, view)
 
 import Browser
+import Browser.Events
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
+import Json.Decode as Decode
 import Task exposing (attempt)
 
 
@@ -27,11 +29,15 @@ main =
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    Browser.Events.onKeyDown keyDecoder
 
 
 
 -- MODEL
+
+
+alphabet =
+    "abcdefghijklmnopqrstuvwxyz"
 
 
 wordLength : number
@@ -82,6 +88,7 @@ type Msg
     = LetterInput String
     | DeleteInput
     | EnterInput
+    | NoOp
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -116,6 +123,9 @@ update msg model =
                     , Cmd.none
                     )
 
+        NoOp ->
+            ( model, Cmd.none )
+
 
 
 -- ACTIONS
@@ -130,6 +140,9 @@ addLetterToCurrentAttempt letter currentAttempt =
         Just attempt ->
             if String.length attempt >= wordLength then
                 Err "Out of spaces"
+
+            else if not (String.contains letter alphabet) then
+                Err "Not in the alphabet"
 
             else
                 Ok (attempt ++ letter)
@@ -217,6 +230,48 @@ decideLetterColor index letter =
 -- |> List.map .letter
 -- |> Set.fromList
 --
+-- INPUT
+
+
+type Key
+    = Character Char
+    | Control String
+
+
+keyDecoder : Decode.Decoder Msg
+keyDecoder =
+    Decode.map (\str -> str |> toKey |> keyToMessage) (Decode.field "key" Decode.string)
+
+
+keyToMessage : Key -> Msg
+keyToMessage key =
+    case key of
+        Character char ->
+            LetterInput (String.fromChar char)
+
+        Control str ->
+            case str of
+                "Backspace" ->
+                    DeleteInput
+
+                "Enter" ->
+                    EnterInput
+
+                _ ->
+                    NoOp
+
+
+toKey : String -> Key
+toKey string =
+    case String.uncons string of
+        Just ( char, "" ) ->
+            Character char
+
+        _ ->
+            Control string
+
+
+
 -- VIEW
 
 
@@ -326,11 +381,7 @@ viewLetterButton letter =
 
 viewLetterButtons : List (Html Msg)
 viewLetterButtons =
-    let
-        letters =
-            "abcdefghijklmnopqrstuvwxyz"
-    in
-    letters
+    alphabet
         |> String.toLower
         |> String.toList
         |> List.map String.fromChar
