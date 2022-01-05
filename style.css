@@ -1,3 +1,5 @@
+/*#region Grid Letters*/
+
 *, *::before, *::after {
     box-sizing: border-box;
 }
@@ -32,6 +34,8 @@ p, h1, h2, h3, h4, h5, h6 {
     isolation: isolate;
 }
 
+/*#endregion*/
+
 /* Start of CSS */
 
 body {
@@ -39,6 +43,10 @@ body {
 }
 
 #body {
+    height: 100%;
+}
+
+#content {
     width: 500px;
     height: 100%;
     margin: 0 auto;
@@ -183,6 +191,30 @@ body {
     height: 58px;
 }
 
+.modal {
+    border-style: solid;
+    border-radius: 8px;
+    border: 1px solid #1a1a1b;
+    background-color: #121213;
+    color: #d7dadc;
+    box-shadow: 0 4px 23px 0 rgb(0 0 0 / 20%);
+    height: 460px;
+    width: 500px;
+    padding: 16px;
+}
+
+.modal-background {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.5);
+
+}
 
 /*#region Grid Letters*/
 .q {

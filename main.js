@@ -5181,10 +5181,11 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$element = _Browser_element;
-var $author$project$Main$Model = F2(
-	function (currentAttempt, previousAttempts) {
-		return {currentAttempt: currentAttempt, previousAttempts: previousAttempts};
+var $author$project$Main$Model = F3(
+	function (currentAttempt, previousAttempts, endGameModalState) {
+		return {currentAttempt: currentAttempt, endGameModalState: endGameModalState, previousAttempts: previousAttempts};
 	});
+var $author$project$Main$Open = {$: 'Open'};
 var $author$project$Main$PreviousAttempt = function (letters) {
 	return {letters: letters};
 };
@@ -5196,7 +5197,7 @@ var $elm$core$String$toList = function (string) {
 };
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
-		A2(
+		A3(
 			$author$project$Main$Model,
 			$elm$core$Maybe$Just(''),
 			A2(
@@ -5206,7 +5207,8 @@ var $author$project$Main$init = function (_v0) {
 					$elm$core$List$map,
 					$elm$core$String$toList,
 					_List_fromArray(
-						['olive', 'eerie', 'ridge', 'girth', 'tiger'])))),
+						['olive', 'eerie', 'ridge', 'girth', 'tiger']))),
+			$author$project$Main$Open),
 		$elm$core$Platform$Cmd$none);
 };
 var $elm$json$Json$Decode$field = _Json_decodeField;
@@ -5660,6 +5662,7 @@ var $elm$browser$Browser$Events$onKeyDown = A2($elm$browser$Browser$Events$on, $
 var $author$project$Main$subscriptions = function (_v0) {
 	return $elm$browser$Browser$Events$onKeyDown($author$project$Main$keyDecoder);
 };
+var $author$project$Main$Closed = {$: 'Closed'};
 var $author$project$Main$alphabet = 'abcdefghijklmnopqrstuvwxyz';
 var $elm$core$String$cons = _String_cons;
 var $elm$core$String$fromChar = function (_char) {
@@ -5782,6 +5785,18 @@ var $author$project$Main$update = F2(
 							}),
 						$elm$core$Platform$Cmd$none);
 				}
+			case 'ShowEndGameModal':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{endGameModalState: $author$project$Main$Open}),
+					$elm$core$Platform$Cmd$none);
+			case 'HideEndGameModal':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{endGameModalState: $author$project$Main$Closed}),
+					$elm$core$Platform$Cmd$none);
 			default:
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}
@@ -5946,6 +5961,84 @@ var $author$project$Main$viewDeleteButton = A2(
 		[
 			$elm$html$Html$text('backspace')
 		]));
+var $author$project$Main$HideEndGameModal = {$: 'HideEndGameModal'};
+var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
+	return {$: 'MayStopPropagation', a: a};
+};
+var $elm$html$Html$Events$stopPropagationOn = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
+	});
+var $author$project$Main$viewShareButton = A2(
+	$elm$html$Html$div,
+	_List_Nil,
+	_List_fromArray(
+		[
+			$elm$html$Html$text('share')
+		]));
+var $author$project$Main$viewStat = F2(
+	function (title, stat) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('stat')
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text(stat),
+					$elm$html$Html$text(title)
+				]));
+	});
+var $author$project$Main$viewTimer = A2(
+	$elm$html$Html$div,
+	_List_Nil,
+	_List_fromArray(
+		[
+			$elm$html$Html$text('next wordle'),
+			$elm$html$Html$text('08:09:10')
+		]));
+var $author$project$Main$viewEndGameModal = function (modalState) {
+	if (modalState.$ === 'Open') {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Events$onClick($author$project$Main$HideEndGameModal),
+					$elm$html$Html$Attributes$class('modal-background')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$Events$stopPropagationOn,
+							'click',
+							$elm$json$Json$Decode$succeed(
+								_Utils_Tuple2($author$project$Main$NoOp, true))),
+							$elm$html$Html$Attributes$class('modal')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('statistics'),
+							A2($author$project$Main$viewStat, 'played', '3'),
+							A2($author$project$Main$viewStat, 'win %', '67'),
+							A2($author$project$Main$viewStat, 'current streak', '1'),
+							A2($author$project$Main$viewStat, 'max streak', '1'),
+							$elm$html$Html$text('guess distribution'),
+							$author$project$Main$viewTimer,
+							$author$project$Main$viewShareButton
+						]))
+				]));
+	} else {
+		return A2($elm$html$Html$div, _List_Nil, _List_Nil);
+	}
+};
 var $author$project$Main$viewEnterButton = A2(
 	$elm$html$Html$button,
 	_List_fromArray(
@@ -6172,41 +6265,51 @@ var $author$project$Main$view = function (model) {
 		_List_fromArray(
 			[
 				A2(
-				$elm$html$Html$header,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$id('header')
-					]),
-				_List_fromArray(
-					[$author$project$Main$viewHelpButton, $author$project$Main$viewTitle, $author$project$Main$viewSettingsButton])),
-				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$id('board')
+						$elm$html$Html$Attributes$id('content')
 					]),
-				$elm$core$List$concat(
-					_List_fromArray(
-						[
-							$author$project$Main$viewPreviousAttempts(model.previousAttempts),
-							$author$project$Main$viewCurrentAttempt(model.currentAttempt),
-							$author$project$Main$viewFutureAttempts(
-							$elm$core$List$length(model.previousAttempts))
-						]))),
-				A2(
-				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$id('keyboard')
-					]),
-				$elm$core$List$concat(
-					_List_fromArray(
-						[
-							$author$project$Main$viewLetterButtons(
-							$author$project$Main$usedLetters(model.previousAttempts)),
-							$elm$core$List$singleton($author$project$Main$viewDeleteButton),
-							$elm$core$List$singleton($author$project$Main$viewEnterButton)
-						])))
+						A2(
+						$elm$html$Html$header,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$id('header')
+							]),
+						_List_fromArray(
+							[$author$project$Main$viewHelpButton, $author$project$Main$viewTitle, $author$project$Main$viewSettingsButton])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$id('board')
+							]),
+						$elm$core$List$concat(
+							_List_fromArray(
+								[
+									$author$project$Main$viewPreviousAttempts(model.previousAttempts),
+									$author$project$Main$viewCurrentAttempt(model.currentAttempt),
+									$author$project$Main$viewFutureAttempts(
+									$elm$core$List$length(model.previousAttempts))
+								]))),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$id('keyboard')
+							]),
+						$elm$core$List$concat(
+							_List_fromArray(
+								[
+									$author$project$Main$viewLetterButtons(
+									$author$project$Main$usedLetters(model.previousAttempts)),
+									$elm$core$List$singleton($author$project$Main$viewDeleteButton),
+									$elm$core$List$singleton($author$project$Main$viewEnterButton)
+								])))
+					])),
+				$author$project$Main$viewEndGameModal(model.endGameModalState)
 			]));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(

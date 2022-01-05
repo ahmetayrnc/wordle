@@ -5,7 +5,7 @@ import Browser.Events
 import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, stopPropagationOn)
 import Json.Decode as Decode
 import Set
 import Task exposing (attempt)
@@ -64,6 +64,17 @@ type LetterColor
     | Gray
 
 
+type GameState
+    = OnGoing
+    | Lost
+    | Won
+
+
+type ModalState
+    = Open
+    | Closed
+
+
 type alias PreviousAttempt =
     { letters : List Char
     }
@@ -72,12 +83,13 @@ type alias PreviousAttempt =
 type alias Model =
     { currentAttempt : Maybe String
     , previousAttempts : List PreviousAttempt
+    , endGameModalState : ModalState
     }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model (Just "") ([ "olive", "eerie", "ridge", "girth", "tiger" ] |> List.map String.toList |> List.map PreviousAttempt)
+    ( Model (Just "") ([ "olive", "eerie", "ridge", "girth", "tiger" ] |> List.map String.toList |> List.map PreviousAttempt) Open
     , Cmd.none
     )
 
@@ -90,6 +102,8 @@ type Msg
     = LetterInput Char
     | DeleteInput
     | EnterInput
+    | ShowEndGameModal
+    | HideEndGameModal
     | NoOp
 
 
@@ -125,8 +139,32 @@ update msg model =
                     , Cmd.none
                     )
 
+        ShowEndGameModal ->
+            ( { model | endGameModalState = Open }, Cmd.none )
+
+        HideEndGameModal ->
+            ( { model | endGameModalState = Closed }, Cmd.none )
+
         NoOp ->
             ( model, Cmd.none )
+
+
+doesPreviousAttemptHasTheWord : List PreviousAttempt -> Bool
+doesPreviousAttemptHasTheWord previousAttempts =
+    previousAttempts |> List.map .letters |> List.map String.fromList |> List.member word
+
+
+determineGameState : List PreviousAttempt -> GameState
+determineGameState previousAttempts =
+    if List.length previousAttempts <= numAttempts then
+        if doesPreviousAttemptHasTheWord previousAttempts then
+            Won
+
+        else
+            Lost
+
+    else
+        OnGoing
 
 
 
@@ -297,25 +335,28 @@ toKey string =
 view : Model -> Html Msg
 view model =
     div [ id "body" ]
-        [ header [ id "header" ]
-            [ viewHelpButton
-            , viewTitle
-            , viewSettingsButton
+        [ div [ id "content" ]
+            [ header [ id "header" ]
+                [ viewHelpButton
+                , viewTitle
+                , viewSettingsButton
+                ]
+            , div [ id "board" ]
+                (List.concat
+                    [ viewPreviousAttempts model.previousAttempts
+                    , viewCurrentAttempt model.currentAttempt
+                    , viewFutureAttempts (List.length model.previousAttempts)
+                    ]
+                )
+            , div [ id "keyboard" ]
+                (List.concat
+                    [ viewLetterButtons (usedLetters model.previousAttempts)
+                    , List.singleton viewDeleteButton
+                    , List.singleton viewEnterButton
+                    ]
+                )
             ]
-        , div [ id "board" ]
-            (List.concat
-                [ viewPreviousAttempts model.previousAttempts
-                , viewCurrentAttempt model.currentAttempt
-                , viewFutureAttempts (List.length model.previousAttempts)
-                ]
-            )
-        , div [ id "keyboard" ]
-            (List.concat
-                [ viewLetterButtons (usedLetters model.previousAttempts)
-                , List.singleton viewDeleteButton
-                , List.singleton viewEnterButton
-                ]
-            )
+        , viewEndGameModal model.endGameModalState
         ]
 
 
@@ -436,3 +477,45 @@ viewDeleteButton =
 viewEnterButton : Html Msg
 viewEnterButton =
     button [ class "special-button", class "button", class "enter", onClick EnterInput ] [ text "enter" ]
+
+
+viewEndGameModal : ModalState -> Html Msg
+viewEndGameModal modalState =
+    case modalState of
+        Open ->
+            div
+                [ onClick HideEndGameModal
+                , class "modal-background"
+                ]
+                [ div
+                    [ stopPropagationOn "click" (Decode.succeed ( NoOp, True ))
+                    , class "modal"
+                    ]
+                    [ text "statistics"
+                    , viewStat "played" "3"
+                    , viewStat "win %" "67"
+                    , viewStat "current streak" "1"
+                    , viewStat "max streak" "1"
+                    , text "guess distribution"
+                    , viewTimer
+                    , viewShareButton
+                    ]
+                ]
+
+        Closed ->
+            div [] []
+
+
+viewStat : String -> String -> Html msg
+viewStat title stat =
+    div [ class "stat" ] [ text stat, text title ]
+
+
+viewTimer : Html Msg
+viewTimer =
+    div [] [ text "next wordle", text "08:09:10" ]
+
+
+viewShareButton : Html Msg
+viewShareButton =
+    div [] [ text "share" ]
