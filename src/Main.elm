@@ -2,10 +2,12 @@ module Main exposing (Model, Msg(..), init, main, update, view)
 
 import Browser
 import Browser.Events
+import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
+import Set
 import Task exposing (attempt)
 
 
@@ -52,7 +54,7 @@ numAttempts =
 
 word : String
 word =
-    "siege"
+    "tiger"
 
 
 type LetterColor
@@ -75,7 +77,7 @@ type alias Model =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model (Just "") ([ "plane", "eerie" ] |> List.map String.toList |> List.map PreviousAttempt)
+    ( Model (Just "") ([ "olive", "eerie", "ridge", "girth", "tiger" ] |> List.map String.toList |> List.map PreviousAttempt)
     , Cmd.none
     )
 
@@ -85,7 +87,7 @@ init _ =
 
 
 type Msg
-    = LetterInput String
+    = LetterInput Char
     | DeleteInput
     | EnterInput
     | NoOp
@@ -131,7 +133,7 @@ update msg model =
 -- ACTIONS
 
 
-addLetterToCurrentAttempt : String -> Maybe String -> Result String String
+addLetterToCurrentAttempt : Char -> Maybe String -> Result String String
 addLetterToCurrentAttempt letter currentAttempt =
     case currentAttempt of
         Nothing ->
@@ -141,11 +143,11 @@ addLetterToCurrentAttempt letter currentAttempt =
             if String.length attempt >= wordLength then
                 Err "Out of spaces"
 
-            else if not (String.contains letter alphabet) then
+            else if not (String.contains (String.fromChar letter) alphabet) then
                 Err "Not in the alphabet"
 
             else
-                Ok (attempt ++ letter)
+                Ok (attempt ++ String.fromChar letter)
 
 
 deleteLetterFromCurrentAttempt : Maybe String -> Result String String
@@ -215,21 +217,38 @@ decideLetterColor index letter =
     ( letter, letterColor )
 
 
+decideAttemptColors : PreviousAttempt -> List ( Char, LetterColor )
+decideAttemptColors previousAttempt =
+    previousAttempt.letters
+        |> List.indexedMap decideLetterColor
 
--- decideAttemptColors : PreviousAttempt -> List ColoredLetter
--- decideAttemptColors previousAttempt =
---     previousAttempt.letters
---         |> List.indexedMap decideLetterColor
--- usedLetters : List PreviousAttempt -> Dict Letter LetterColor
--- usedLetters previousAttempts =
---     previousAttempts
---         |> List.map decideAttemptColors
---         |> List.concat
--- |> List.foldl
--- |> List.concat
--- |> List.map .letter
--- |> Set.fromList
---
+
+letterColorToOrder : LetterColor -> Int
+letterColorToOrder letterColor =
+    case letterColor of
+        Green ->
+            4
+
+        Yellow ->
+            3
+
+        Gray ->
+            2
+
+        Normal ->
+            1
+
+
+usedLetters : List PreviousAttempt -> Dict Char LetterColor
+usedLetters previousAttempts =
+    previousAttempts
+        |> List.map decideAttemptColors
+        |> List.concat
+        |> List.sortBy (\tuple -> tuple |> Tuple.second |> letterColorToOrder)
+        |> Dict.fromList
+
+
+
 -- INPUT
 
 
@@ -247,7 +266,7 @@ keyToMessage : Key -> Msg
 keyToMessage key =
     case key of
         Character char ->
-            LetterInput (String.fromChar char)
+            LetterInput char
 
         Control str ->
             case str of
@@ -280,7 +299,7 @@ view model =
     div [ id "body" ]
         [ header [ id "header" ]
             [ viewHelpButton
-            , div [ id "title" ] [ text "Wordle" ]
+            , viewTitle
             , viewSettingsButton
             ]
         , div [ id "board" ]
@@ -292,7 +311,7 @@ view model =
             )
         , div [ id "keyboard" ]
             (List.concat
-                [ viewLetterButtons
+                [ viewLetterButtons (usedLetters model.previousAttempts)
                 , List.singleton viewDeleteButton
                 , List.singleton viewEnterButton
                 ]
@@ -310,8 +329,13 @@ viewSettingsButton =
     button [ class "material-icons", class "icon-button" ] [ text "settings" ]
 
 
-viewLetterColor : LetterColor -> String
-viewLetterColor letterColor =
+viewTitle : Html Msg
+viewTitle =
+    div [ id "title" ] [ text "Wordle" ]
+
+
+letterColorToColorString : LetterColor -> String
+letterColorToColorString letterColor =
     case letterColor of
         Gray ->
             "gray"
@@ -330,7 +354,7 @@ viewPreviousAttempt : PreviousAttempt -> List (Html msg)
 viewPreviousAttempt attempt =
     let
         letterColor =
-            \index -> \letter -> viewLetterColor (Tuple.second (decideLetterColor index letter))
+            \index -> \letter -> letterColorToColorString (Tuple.second (decideLetterColor index letter))
 
         letterText =
             \letter -> text (String.fromChar letter)
@@ -374,18 +398,34 @@ viewCurrentAttempt currentAttempt =
             [ div [ class "attempt" ] letterDivs ]
 
 
-viewLetterButton : String -> Html Msg
-viewLetterButton letter =
-    button [ onClick (LetterInput letter), class "letter-button", class "button", class letter ] [ text letter ]
+viewLetterButton : Char -> LetterColor -> Html Msg
+viewLetterButton letter letterColor =
+    button
+        [ onClick (LetterInput letter)
+        , class "letter-button"
+        , class "button"
+        , class (String.fromChar letter)
+        , class (letterColorToColorString letterColor)
+        ]
+        [ text (String.fromChar letter) ]
 
 
-viewLetterButtons : List (Html Msg)
-viewLetterButtons =
+determineLetterButtonColor : Dict Char LetterColor -> Char -> LetterColor
+determineLetterButtonColor letterColors char =
+    case Dict.get char letterColors of
+        Nothing ->
+            Normal
+
+        Just color ->
+            color
+
+
+viewLetterButtons : Dict Char LetterColor -> List (Html Msg)
+viewLetterButtons letterColors =
     alphabet
         |> String.toLower
         |> String.toList
-        |> List.map String.fromChar
-        |> List.map viewLetterButton
+        |> List.map (\char -> viewLetterButton char (determineLetterButtonColor letterColors char))
 
 
 viewDeleteButton : Html Msg

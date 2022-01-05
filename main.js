@@ -5206,7 +5206,7 @@ var $author$project$Main$init = function (_v0) {
 					$elm$core$List$map,
 					$elm$core$String$toList,
 					_List_fromArray(
-						['plane', 'eerie'])))),
+						['olive', 'eerie', 'ridge', 'girth', 'tiger'])))),
 		$elm$core$Platform$Cmd$none);
 };
 var $elm$json$Json$Decode$field = _Json_decodeField;
@@ -5216,15 +5216,10 @@ var $author$project$Main$LetterInput = function (a) {
 	return {$: 'LetterInput', a: a};
 };
 var $author$project$Main$NoOp = {$: 'NoOp'};
-var $elm$core$String$cons = _String_cons;
-var $elm$core$String$fromChar = function (_char) {
-	return A2($elm$core$String$cons, _char, '');
-};
 var $author$project$Main$keyToMessage = function (key) {
 	if (key.$ === 'Character') {
 		var _char = key.a;
-		return $author$project$Main$LetterInput(
-			$elm$core$String$fromChar(_char));
+		return $author$project$Main$LetterInput(_char);
 	} else {
 		var str = key.a;
 		switch (str) {
@@ -5666,6 +5661,10 @@ var $author$project$Main$subscriptions = function (_v0) {
 	return $elm$browser$Browser$Events$onKeyDown($author$project$Main$keyDecoder);
 };
 var $author$project$Main$alphabet = 'abcdefghijklmnopqrstuvwxyz';
+var $elm$core$String$cons = _String_cons;
+var $elm$core$String$fromChar = function (_char) {
+	return A2($elm$core$String$cons, _char, '');
+};
 var $elm$core$Basics$ge = _Utils_ge;
 var $elm$core$Basics$not = _Basics_not;
 var $author$project$Main$wordLength = 5;
@@ -5677,8 +5676,13 @@ var $author$project$Main$addLetterToCurrentAttempt = F2(
 			var attempt = currentAttempt.a;
 			return (_Utils_cmp(
 				$elm$core$String$length(attempt),
-				$author$project$Main$wordLength) > -1) ? $elm$core$Result$Err('Out of spaces') : ((!A2($elm$core$String$contains, letter, $author$project$Main$alphabet)) ? $elm$core$Result$Err('Not in the alphabet') : $elm$core$Result$Ok(
-				_Utils_ap(attempt, letter)));
+				$author$project$Main$wordLength) > -1) ? $elm$core$Result$Err('Out of spaces') : ((!A2(
+				$elm$core$String$contains,
+				$elm$core$String$fromChar(letter),
+				$author$project$Main$alphabet)) ? $elm$core$Result$Err('Not in the alphabet') : $elm$core$Result$Ok(
+				_Utils_ap(
+					attempt,
+					$elm$core$String$fromChar(letter))));
 		}
 	});
 var $elm$core$List$append = F2(
@@ -5800,8 +5804,50 @@ var $elm$core$List$singleton = function (value) {
 	return _List_fromArray(
 		[value]);
 };
-var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $author$project$Main$Gray = {$: 'Gray'};
+var $author$project$Main$Green = {$: 'Green'};
+var $author$project$Main$Yellow = {$: 'Yellow'};
+var $elm$core$String$toLower = _String_toLower;
+var $author$project$Main$word = 'tiger';
+var $author$project$Main$decideLetterColor = F2(
+	function (index, letter) {
+		var letterStr = $elm$core$String$toLower(
+			$elm$core$String$fromChar(letter));
+		var letterColor = _Utils_eq(
+			A3($elm$core$String$slice, index, index + 1, $author$project$Main$word),
+			letterStr) ? $author$project$Main$Green : (A2($elm$core$String$contains, letterStr, $author$project$Main$word) ? $author$project$Main$Yellow : $author$project$Main$Gray);
+		return _Utils_Tuple2(letter, letterColor);
+	});
+var $author$project$Main$decideAttemptColors = function (previousAttempt) {
+	return A2($elm$core$List$indexedMap, $author$project$Main$decideLetterColor, previousAttempt.letters);
+};
+var $author$project$Main$letterColorToOrder = function (letterColor) {
+	switch (letterColor.$) {
+		case 'Green':
+			return 4;
+		case 'Yellow':
+			return 3;
+		case 'Gray':
+			return 2;
+		default:
+			return 1;
+	}
+};
+var $elm$core$Tuple$second = function (_v0) {
+	var y = _v0.b;
+	return y;
+};
+var $elm$core$List$sortBy = _List_sortBy;
+var $author$project$Main$usedLetters = function (previousAttempts) {
+	return $elm$core$Dict$fromList(
+		A2(
+			$elm$core$List$sortBy,
+			function (tuple) {
+				return $author$project$Main$letterColorToOrder(tuple.b);
+			},
+			$elm$core$List$concat(
+				A2($elm$core$List$map, $author$project$Main$decideAttemptColors, previousAttempts))));
+};
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$core$Bitwise$and = _Bitwise_and;
 var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
@@ -5826,6 +5872,8 @@ var $elm$core$String$padRight = F3(
 				n - $elm$core$String$length(string),
 				$elm$core$String$fromChar(_char)));
 	});
+var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$Main$viewCurrentAttempt = function (currentAttempt) {
 	if (currentAttempt.$ === 'Nothing') {
 		return _List_Nil;
@@ -5965,49 +6013,49 @@ var $author$project$Main$viewHelpButton = A2(
 		[
 			$elm$html$Html$text('help_outline')
 		]));
-var $elm$core$String$toLower = _String_toLower;
-var $author$project$Main$viewLetterButton = function (letter) {
-	return A2(
-		$elm$html$Html$button,
-		_List_fromArray(
-			[
-				$elm$html$Html$Events$onClick(
-				$author$project$Main$LetterInput(letter)),
-				$elm$html$Html$Attributes$class('letter-button'),
-				$elm$html$Html$Attributes$class('button'),
-				$elm$html$Html$Attributes$class(letter)
-			]),
-		_List_fromArray(
-			[
-				$elm$html$Html$text(letter)
-			]));
-};
-var $author$project$Main$viewLetterButtons = A2(
-	$elm$core$List$map,
-	$author$project$Main$viewLetterButton,
-	A2(
-		$elm$core$List$map,
-		$elm$core$String$fromChar,
-		$elm$core$String$toList(
-			$elm$core$String$toLower($author$project$Main$alphabet))));
-var $author$project$Main$Gray = {$: 'Gray'};
-var $author$project$Main$Green = {$: 'Green'};
-var $author$project$Main$Yellow = {$: 'Yellow'};
-var $author$project$Main$word = 'siege';
-var $author$project$Main$decideLetterColor = F2(
-	function (index, letter) {
-		var letterStr = $elm$core$String$toLower(
-			$elm$core$String$fromChar(letter));
-		var letterColor = _Utils_eq(
-			A3($elm$core$String$slice, index, index + 1, $author$project$Main$word),
-			letterStr) ? $author$project$Main$Green : (A2($elm$core$String$contains, letterStr, $author$project$Main$word) ? $author$project$Main$Yellow : $author$project$Main$Gray);
-		return _Utils_Tuple2(letter, letterColor);
+var $author$project$Main$Normal = {$: 'Normal'};
+var $elm$core$Dict$get = F2(
+	function (targetKey, dict) {
+		get:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
+				switch (_v1.$) {
+					case 'LT':
+						var $temp$targetKey = targetKey,
+							$temp$dict = left;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+					case 'EQ':
+						return $elm$core$Maybe$Just(value);
+					default:
+						var $temp$targetKey = targetKey,
+							$temp$dict = right;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+				}
+			}
+		}
 	});
-var $elm$core$Tuple$second = function (_v0) {
-	var y = _v0.b;
-	return y;
-};
-var $author$project$Main$viewLetterColor = function (letterColor) {
+var $author$project$Main$determineLetterButtonColor = F2(
+	function (letterColors, _char) {
+		var _v0 = A2($elm$core$Dict$get, _char, letterColors);
+		if (_v0.$ === 'Nothing') {
+			return $author$project$Main$Normal;
+		} else {
+			var color = _v0.a;
+			return color;
+		}
+	});
+var $author$project$Main$letterColorToColorString = function (letterColor) {
 	switch (letterColor.$) {
 		case 'Gray':
 			return 'gray';
@@ -6019,6 +6067,39 @@ var $author$project$Main$viewLetterColor = function (letterColor) {
 			return 'yellow';
 	}
 };
+var $author$project$Main$viewLetterButton = F2(
+	function (letter, letterColor) {
+		return A2(
+			$elm$html$Html$button,
+			_List_fromArray(
+				[
+					$elm$html$Html$Events$onClick(
+					$author$project$Main$LetterInput(letter)),
+					$elm$html$Html$Attributes$class('letter-button'),
+					$elm$html$Html$Attributes$class('button'),
+					$elm$html$Html$Attributes$class(
+					$elm$core$String$fromChar(letter)),
+					$elm$html$Html$Attributes$class(
+					$author$project$Main$letterColorToColorString(letterColor))
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text(
+					$elm$core$String$fromChar(letter))
+				]));
+	});
+var $author$project$Main$viewLetterButtons = function (letterColors) {
+	return A2(
+		$elm$core$List$map,
+		function (_char) {
+			return A2(
+				$author$project$Main$viewLetterButton,
+				_char,
+				A2($author$project$Main$determineLetterButtonColor, letterColors, _char));
+		},
+		$elm$core$String$toList(
+			$elm$core$String$toLower($author$project$Main$alphabet)));
+};
 var $author$project$Main$viewPreviousAttempt = function (attempt) {
 	var letterText = function (letter) {
 		return $elm$html$Html$text(
@@ -6026,7 +6107,7 @@ var $author$project$Main$viewPreviousAttempt = function (attempt) {
 	};
 	var letterColor = function (index) {
 		return function (letter) {
-			return $author$project$Main$viewLetterColor(
+			return $author$project$Main$letterColorToColorString(
 				A2($author$project$Main$decideLetterColor, index, letter).b);
 		};
 	};
@@ -6071,6 +6152,16 @@ var $author$project$Main$viewSettingsButton = A2(
 		[
 			$elm$html$Html$text('settings')
 		]));
+var $author$project$Main$viewTitle = A2(
+	$elm$html$Html$div,
+	_List_fromArray(
+		[
+			$elm$html$Html$Attributes$id('title')
+		]),
+	_List_fromArray(
+		[
+			$elm$html$Html$text('Wordle')
+		]));
 var $author$project$Main$view = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -6087,20 +6178,7 @@ var $author$project$Main$view = function (model) {
 						$elm$html$Html$Attributes$id('header')
 					]),
 				_List_fromArray(
-					[
-						$author$project$Main$viewHelpButton,
-						A2(
-						$elm$html$Html$div,
-						_List_fromArray(
-							[
-								$elm$html$Html$Attributes$id('title')
-							]),
-						_List_fromArray(
-							[
-								$elm$html$Html$text('Wordle')
-							])),
-						$author$project$Main$viewSettingsButton
-					])),
+					[$author$project$Main$viewHelpButton, $author$project$Main$viewTitle, $author$project$Main$viewSettingsButton])),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
@@ -6124,7 +6202,8 @@ var $author$project$Main$view = function (model) {
 				$elm$core$List$concat(
 					_List_fromArray(
 						[
-							$author$project$Main$viewLetterButtons,
+							$author$project$Main$viewLetterButtons(
+							$author$project$Main$usedLetters(model.previousAttempts)),
 							$elm$core$List$singleton($author$project$Main$viewDeleteButton),
 							$elm$core$List$singleton($author$project$Main$viewEnterButton)
 						])))
