@@ -56,12 +56,6 @@ type LetterColor
     | Gray
 
 
-type alias ColoredLetter =
-    { letter : Char
-    , color : LetterColor
-    }
-
-
 type alias PreviousAttempt =
     { letters : List Char
     }
@@ -85,102 +79,77 @@ init _ =
 
 
 type Msg
-    = LetterButtonPressed String
-    | DeleteButtonPressed
-    | EnterButtonPressed
+    = LetterInput String
+    | DeleteInput
+    | EnterInput
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        LetterButtonPressed letter ->
-            if validateLetterButtonPress model.currentAttempt then
-                ( { model | currentAttempt = addLetterToCurrentAttempt letter model.currentAttempt }, Cmd.none )
+        LetterInput letter ->
+            case addLetterToCurrentAttempt letter model.currentAttempt of
+                Err _ ->
+                    ( model, Cmd.none )
 
-            else
-                ( model, Cmd.none )
+                Ok currentAttempt ->
+                    ( { model | currentAttempt = Just currentAttempt }, Cmd.none )
 
-        DeleteButtonPressed ->
-            if validateDeleteButtonPress model then
-                ( { model | currentAttempt = deleteLetterFromCurrentAttempt model.currentAttempt }, Cmd.none )
+        DeleteInput ->
+            case deleteLetterFromCurrentAttempt model.currentAttempt of
+                Err _ ->
+                    ( model, Cmd.none )
 
-            else
-                ( model, Cmd.none )
+                Ok currentAttempt ->
+                    ( { model | currentAttempt = Just currentAttempt }, Cmd.none )
 
-        EnterButtonPressed ->
-            if validateAttempt model.currentAttempt then
-                ( { model
-                    | previousAttempts = addNewAttempt model.previousAttempts model.currentAttempt
-                    , currentAttempt = resetCurrentAttempt model.previousAttempts
-                  }
-                , Cmd.none
-                )
+        EnterInput ->
+            case addNewAttempt model.previousAttempts model.currentAttempt of
+                Err _ ->
+                    ( model, Cmd.none )
 
-            else
-                ( model, Cmd.none )
-
-
-
--- VALIDATION
-
-
-validateDeleteButtonPress : Model -> Bool
-validateDeleteButtonPress model =
-    model.currentAttempt /= Nothing
-
-
-validateLetterButtonPress : Maybe String -> Bool
-validateLetterButtonPress currentAttempt =
-    case currentAttempt of
-        Nothing ->
-            False
-
-        Just attempt ->
-            if String.length attempt >= wordLength then
-                False
-
-            else
-                True
-
-
-validateAttempt : Maybe String -> Bool
-validateAttempt currentAttempt =
-    case currentAttempt of
-        Nothing ->
-            False
-
-        Just attempt ->
-            if String.length attempt > wordLength then
-                False
-
-            else if String.length attempt < wordLength then
-                False
-
-            else
-                True
+                Ok previousAttempts ->
+                    ( { model
+                        | previousAttempts = previousAttempts
+                        , currentAttempt = resetCurrentAttempt previousAttempts
+                      }
+                    , Cmd.none
+                    )
 
 
 
 -- ACTIONS
 
 
-addLetterToCurrentAttempt : String -> Maybe String -> Maybe String
+addLetterToCurrentAttempt : String -> Maybe String -> Result String String
 addLetterToCurrentAttempt letter currentAttempt =
-    currentAttempt
-        |> Maybe.map (\str -> str ++ letter)
+    case currentAttempt of
+        Nothing ->
+            Err "Out of Attempts"
+
+        Just attempt ->
+            if String.length attempt >= wordLength then
+                Err "Out of spaces"
+
+            else
+                Ok (attempt ++ letter)
 
 
-deleteLetterFromCurrentAttempt : Maybe String -> Maybe String
+deleteLetterFromCurrentAttempt : Maybe String -> Result String String
 deleteLetterFromCurrentAttempt currentAttempt =
-    currentAttempt
-        |> Maybe.map (String.dropRight 1)
+    case currentAttempt of
+        Nothing ->
+            Err "Out of Attempts"
+
+        Just attempt ->
+            Ok (String.dropRight 1 attempt)
 
 
-addNewAttempt : List PreviousAttempt -> Maybe String -> List PreviousAttempt
+addNewAttempt : List PreviousAttempt -> Maybe String -> Result String (List PreviousAttempt)
 addNewAttempt previousAttempts currentAttempt =
     case currentAttempt of
         Nothing ->
-            previousAttempts
+            Err "Out of Attempts"
 
         Just attempt ->
             let
@@ -189,12 +158,19 @@ addNewAttempt previousAttempts currentAttempt =
                         |> String.toList
                         |> PreviousAttempt
             in
-            List.append previousAttempts [ previousAttempt ]
+            if String.length attempt > wordLength then
+                Err "Current attempt somehow too long "
+
+            else if String.length attempt < wordLength then
+                Err "Current attempt too short"
+
+            else
+                Ok (List.append previousAttempts [ previousAttempt ])
 
 
 resetCurrentAttempt : List PreviousAttempt -> Maybe String
 resetCurrentAttempt previousAttempts =
-    if List.length previousAttempts >= numAttempts - 1 then
+    if List.length previousAttempts >= numAttempts then
         Nothing
 
     else
@@ -205,22 +181,25 @@ resetCurrentAttempt previousAttempts =
 -- COLORS
 
 
-decideLetterColor : Int -> Char -> ColoredLetter
+decideLetterColor : Int -> Char -> ( Char, LetterColor )
 decideLetterColor index letter =
     let
         letterStr =
             letter
                 |> String.fromChar
                 |> String.toLower
+
+        letterColor =
+            if String.slice index (index + 1) word == letterStr then
+                Green
+
+            else if String.contains letterStr word then
+                Yellow
+
+            else
+                Gray
     in
-    if String.slice index (index + 1) word == letterStr then
-        ColoredLetter letter Green
-
-    else if String.contains letterStr word then
-        ColoredLetter letter Yellow
-
-    else
-        ColoredLetter letter Gray
+    ( letter, letterColor )
 
 
 
@@ -252,7 +231,7 @@ view model =
         , div [ id "board" ]
             (List.concat
                 [ viewPreviousAttempts model.previousAttempts
-                , List.singleton (viewCurrentAttempt model.currentAttempt)
+                , viewCurrentAttempt model.currentAttempt
                 , viewFutureAttempts (List.length model.previousAttempts)
                 ]
             )
@@ -296,7 +275,7 @@ viewPreviousAttempt : PreviousAttempt -> List (Html msg)
 viewPreviousAttempt attempt =
     let
         letterColor =
-            \index -> \letter -> viewLetterColor (decideLetterColor index letter).color
+            \index -> \letter -> viewLetterColor (Tuple.second (decideLetterColor index letter))
 
         letterText =
             \letter -> text (String.fromChar letter)
@@ -312,11 +291,6 @@ viewPreviousAttempts attempts =
         |> List.map (div [ class "attempt" ])
 
 
-
--- |> List.
--- |> div [ class "previous-attempts" ]
-
-
 viewFutureAttempt : Html msg
 viewFutureAttempt =
     div [ class "attempt" ] (List.repeat wordLength (div [ class "letter-box" ] [ text "" ]))
@@ -327,15 +301,11 @@ viewFutureAttempts numPreviousAttempts =
     List.repeat (numAttempts - numPreviousAttempts - 1) viewFutureAttempt
 
 
-
--- |> div [ id "future-attempts" ]
-
-
-viewCurrentAttempt : Maybe String -> Html msg
+viewCurrentAttempt : Maybe String -> List (Html msg)
 viewCurrentAttempt currentAttempt =
     case currentAttempt of
         Nothing ->
-            div [] []
+            []
 
         Just attempt ->
             let
@@ -346,12 +316,12 @@ viewCurrentAttempt currentAttempt =
                         |> List.map String.fromChar
                         |> List.map (\char -> div [ class "letter-box" ] [ text char ])
             in
-            div [ class "attempt" ] letterDivs
+            [ div [ class "attempt" ] letterDivs ]
 
 
 viewLetterButton : String -> Html Msg
 viewLetterButton letter =
-    button [ onClick (LetterButtonPressed letter), class "letter-button", class "button", class letter ] [ text letter ]
+    button [ onClick (LetterInput letter), class "letter-button", class "button", class letter ] [ text letter ]
 
 
 viewLetterButtons : List (Html Msg)
@@ -369,9 +339,9 @@ viewLetterButtons =
 
 viewDeleteButton : Html Msg
 viewDeleteButton =
-    button [ class "material-icons-outlined", class "special-button", class "button", class "delete", onClick DeleteButtonPressed ] [ text "backspace" ]
+    button [ class "material-icons-outlined", class "special-button", class "button", class "delete", onClick DeleteInput ] [ text "backspace" ]
 
 
 viewEnterButton : Html Msg
 viewEnterButton =
-    button [ class "special-button", class "button", class "enter", onClick EnterButtonPressed ] [ text "enter" ]
+    button [ class "special-button", class "button", class "enter", onClick EnterInput ] [ text "enter" ]

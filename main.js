@@ -5214,24 +5214,19 @@ var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
 var $author$project$Main$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$none;
 };
-var $elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return $elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
-	});
+var $elm$core$Basics$ge = _Utils_ge;
+var $author$project$Main$wordLength = 5;
 var $author$project$Main$addLetterToCurrentAttempt = F2(
 	function (letter, currentAttempt) {
-		return A2(
-			$elm$core$Maybe$map,
-			function (str) {
-				return _Utils_ap(str, letter);
-			},
-			currentAttempt);
+		if (currentAttempt.$ === 'Nothing') {
+			return $elm$core$Result$Err('Out of Attempts');
+		} else {
+			var attempt = currentAttempt.a;
+			return (_Utils_cmp(
+				$elm$core$String$length(attempt),
+				$author$project$Main$wordLength) > -1) ? $elm$core$Result$Err('Out of spaces') : $elm$core$Result$Ok(
+				_Utils_ap(attempt, letter));
+		}
 	});
 var $elm$core$List$append = F2(
 	function (xs, ys) {
@@ -5244,16 +5239,21 @@ var $elm$core$List$append = F2(
 var $author$project$Main$addNewAttempt = F2(
 	function (previousAttempts, currentAttempt) {
 		if (currentAttempt.$ === 'Nothing') {
-			return previousAttempts;
+			return $elm$core$Result$Err('Out of Attempts');
 		} else {
 			var attempt = currentAttempt.a;
 			var previousAttempt = $author$project$Main$PreviousAttempt(
 				$elm$core$String$toList(attempt));
-			return A2(
-				$elm$core$List$append,
-				previousAttempts,
-				_List_fromArray(
-					[previousAttempt]));
+			return (_Utils_cmp(
+				$elm$core$String$length(attempt),
+				$author$project$Main$wordLength) > 0) ? $elm$core$Result$Err('Current attempt somehow too long ') : ((_Utils_cmp(
+				$elm$core$String$length(attempt),
+				$author$project$Main$wordLength) < 0) ? $elm$core$Result$Err('Current attempt too short') : $elm$core$Result$Ok(
+				A2(
+					$elm$core$List$append,
+					previousAttempts,
+					_List_fromArray(
+						[previousAttempt]))));
 		}
 	});
 var $elm$core$Basics$negate = function (n) {
@@ -5264,74 +5264,67 @@ var $elm$core$String$dropRight = F2(
 		return (n < 1) ? string : A3($elm$core$String$slice, 0, -n, string);
 	});
 var $author$project$Main$deleteLetterFromCurrentAttempt = function (currentAttempt) {
-	return A2(
-		$elm$core$Maybe$map,
-		$elm$core$String$dropRight(1),
-		currentAttempt);
+	if (currentAttempt.$ === 'Nothing') {
+		return $elm$core$Result$Err('Out of Attempts');
+	} else {
+		var attempt = currentAttempt.a;
+		return $elm$core$Result$Ok(
+			A2($elm$core$String$dropRight, 1, attempt));
+	}
 };
-var $elm$core$Basics$ge = _Utils_ge;
 var $author$project$Main$numAttempts = 6;
 var $author$project$Main$resetCurrentAttempt = function (previousAttempts) {
 	return (_Utils_cmp(
 		$elm$core$List$length(previousAttempts),
-		$author$project$Main$numAttempts - 1) > -1) ? $elm$core$Maybe$Nothing : $elm$core$Maybe$Just('');
-};
-var $author$project$Main$wordLength = 5;
-var $author$project$Main$validateAttempt = function (currentAttempt) {
-	if (currentAttempt.$ === 'Nothing') {
-		return false;
-	} else {
-		var attempt = currentAttempt.a;
-		return (_Utils_cmp(
-			$elm$core$String$length(attempt),
-			$author$project$Main$wordLength) > 0) ? false : ((_Utils_cmp(
-			$elm$core$String$length(attempt),
-			$author$project$Main$wordLength) < 0) ? false : true);
-	}
-};
-var $elm$core$Basics$neq = _Utils_notEqual;
-var $author$project$Main$validateDeleteButtonPress = function (model) {
-	return !_Utils_eq(model.currentAttempt, $elm$core$Maybe$Nothing);
-};
-var $author$project$Main$validateLetterButtonPress = function (currentAttempt) {
-	if (currentAttempt.$ === 'Nothing') {
-		return false;
-	} else {
-		var attempt = currentAttempt.a;
-		return (_Utils_cmp(
-			$elm$core$String$length(attempt),
-			$author$project$Main$wordLength) > -1) ? false : true;
-	}
+		$author$project$Main$numAttempts) > -1) ? $elm$core$Maybe$Nothing : $elm$core$Maybe$Just('');
 };
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
-			case 'LetterButtonPressed':
+			case 'LetterInput':
 				var letter = msg.a;
-				return $author$project$Main$validateLetterButtonPress(model.currentAttempt) ? _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							currentAttempt: A2($author$project$Main$addLetterToCurrentAttempt, letter, model.currentAttempt)
-						}),
-					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
-			case 'DeleteButtonPressed':
-				return $author$project$Main$validateDeleteButtonPress(model) ? _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							currentAttempt: $author$project$Main$deleteLetterFromCurrentAttempt(model.currentAttempt)
-						}),
-					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				var _v1 = A2($author$project$Main$addLetterToCurrentAttempt, letter, model.currentAttempt);
+				if (_v1.$ === 'Err') {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				} else {
+					var currentAttempt = _v1.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								currentAttempt: $elm$core$Maybe$Just(currentAttempt)
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
+			case 'DeleteInput':
+				var _v2 = $author$project$Main$deleteLetterFromCurrentAttempt(model.currentAttempt);
+				if (_v2.$ === 'Err') {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				} else {
+					var currentAttempt = _v2.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								currentAttempt: $elm$core$Maybe$Just(currentAttempt)
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
 			default:
-				return $author$project$Main$validateAttempt(model.currentAttempt) ? _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							currentAttempt: $author$project$Main$resetCurrentAttempt(model.previousAttempts),
-							previousAttempts: A2($author$project$Main$addNewAttempt, model.previousAttempts, model.currentAttempt)
-						}),
-					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				var _v3 = A2($author$project$Main$addNewAttempt, model.previousAttempts, model.currentAttempt);
+				if (_v3.$ === 'Err') {
+					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				} else {
+					var previousAttempts = _v3.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								currentAttempt: $author$project$Main$resetCurrentAttempt(previousAttempts),
+								previousAttempts: previousAttempts
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
 		}
 	});
 var $elm$core$List$concat = function (lists) {
@@ -5384,7 +5377,7 @@ var $elm$core$String$padRight = F3(
 	});
 var $author$project$Main$viewCurrentAttempt = function (currentAttempt) {
 	if (currentAttempt.$ === 'Nothing') {
-		return A2($elm$html$Html$div, _List_Nil, _List_Nil);
+		return _List_Nil;
 	} else {
 		var attempt = currentAttempt.a;
 		var letterDivs = A2(
@@ -5410,16 +5403,19 @@ var $author$project$Main$viewCurrentAttempt = function (currentAttempt) {
 						$author$project$Main$wordLength,
 						_Utils_chr(' '),
 						attempt))));
-		return A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('attempt')
-				]),
-			letterDivs);
+		return _List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('attempt')
+					]),
+				letterDivs)
+			]);
 	}
 };
-var $author$project$Main$DeleteButtonPressed = {$: 'DeleteButtonPressed'};
+var $author$project$Main$DeleteInput = {$: 'DeleteInput'};
 var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
@@ -5446,13 +5442,13 @@ var $author$project$Main$viewDeleteButton = A2(
 			$elm$html$Html$Attributes$class('special-button'),
 			$elm$html$Html$Attributes$class('button'),
 			$elm$html$Html$Attributes$class('delete'),
-			$elm$html$Html$Events$onClick($author$project$Main$DeleteButtonPressed)
+			$elm$html$Html$Events$onClick($author$project$Main$DeleteInput)
 		]),
 	_List_fromArray(
 		[
 			$elm$html$Html$text('backspace')
 		]));
-var $author$project$Main$EnterButtonPressed = {$: 'EnterButtonPressed'};
+var $author$project$Main$EnterInput = {$: 'EnterInput'};
 var $author$project$Main$viewEnterButton = A2(
 	$elm$html$Html$button,
 	_List_fromArray(
@@ -5460,7 +5456,7 @@ var $author$project$Main$viewEnterButton = A2(
 			$elm$html$Html$Attributes$class('special-button'),
 			$elm$html$Html$Attributes$class('button'),
 			$elm$html$Html$Attributes$class('enter'),
-			$elm$html$Html$Events$onClick($author$project$Main$EnterButtonPressed)
+			$elm$html$Html$Events$onClick($author$project$Main$EnterInput)
 		]),
 	_List_fromArray(
 		[
@@ -5521,8 +5517,8 @@ var $author$project$Main$viewHelpButton = A2(
 			$elm$html$Html$text('help_outline')
 		]));
 var $elm$core$String$toLower = _String_toLower;
-var $author$project$Main$LetterButtonPressed = function (a) {
-	return {$: 'LetterButtonPressed', a: a};
+var $author$project$Main$LetterInput = function (a) {
+	return {$: 'LetterInput', a: a};
 };
 var $author$project$Main$viewLetterButton = function (letter) {
 	return A2(
@@ -5530,7 +5526,7 @@ var $author$project$Main$viewLetterButton = function (letter) {
 		_List_fromArray(
 			[
 				$elm$html$Html$Events$onClick(
-				$author$project$Main$LetterButtonPressed(letter)),
+				$author$project$Main$LetterInput(letter)),
 				$elm$html$Html$Attributes$class('letter-button'),
 				$elm$html$Html$Attributes$class('button'),
 				$elm$html$Html$Attributes$class(letter)
@@ -5551,10 +5547,6 @@ var $author$project$Main$viewLetterButtons = function () {
 			$elm$core$String$toList(
 				$elm$core$String$toLower(letters))));
 }();
-var $author$project$Main$ColoredLetter = F2(
-	function (letter, color) {
-		return {color: color, letter: letter};
-	});
 var $author$project$Main$Gray = {$: 'Gray'};
 var $author$project$Main$Green = {$: 'Green'};
 var $author$project$Main$Yellow = {$: 'Yellow'};
@@ -5563,10 +5555,15 @@ var $author$project$Main$decideLetterColor = F2(
 	function (index, letter) {
 		var letterStr = $elm$core$String$toLower(
 			$elm$core$String$fromChar(letter));
-		return _Utils_eq(
+		var letterColor = _Utils_eq(
 			A3($elm$core$String$slice, index, index + 1, $author$project$Main$word),
-			letterStr) ? A2($author$project$Main$ColoredLetter, letter, $author$project$Main$Green) : (A2($elm$core$String$contains, letterStr, $author$project$Main$word) ? A2($author$project$Main$ColoredLetter, letter, $author$project$Main$Yellow) : A2($author$project$Main$ColoredLetter, letter, $author$project$Main$Gray));
+			letterStr) ? $author$project$Main$Green : (A2($elm$core$String$contains, letterStr, $author$project$Main$word) ? $author$project$Main$Yellow : $author$project$Main$Gray);
+		return _Utils_Tuple2(letter, letterColor);
 	});
+var $elm$core$Tuple$second = function (_v0) {
+	var y = _v0.b;
+	return y;
+};
 var $author$project$Main$viewLetterColor = function (letterColor) {
 	switch (letterColor.$) {
 		case 'Gray':
@@ -5587,7 +5584,7 @@ var $author$project$Main$viewPreviousAttempt = function (attempt) {
 	var letterColor = function (index) {
 		return function (letter) {
 			return $author$project$Main$viewLetterColor(
-				A2($author$project$Main$decideLetterColor, index, letter).color);
+				A2($author$project$Main$decideLetterColor, index, letter).b);
 		};
 	};
 	return A2(
@@ -5671,8 +5668,7 @@ var $author$project$Main$view = function (model) {
 					_List_fromArray(
 						[
 							$author$project$Main$viewPreviousAttempts(model.previousAttempts),
-							$elm$core$List$singleton(
-							$author$project$Main$viewCurrentAttempt(model.currentAttempt)),
+							$author$project$Main$viewCurrentAttempt(model.currentAttempt),
 							$author$project$Main$viewFutureAttempts(
 							$elm$core$List$length(model.previousAttempts))
 						]))),
