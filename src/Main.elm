@@ -7,7 +7,6 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, stopPropagationOn)
 import Json.Decode as Decode
-import Set
 import Task exposing (attempt)
 
 
@@ -38,6 +37,7 @@ subscriptions _ =
 -- MODEL
 
 
+alphabet : String
 alphabet =
     "abcdefghijklmnopqrstuvwxyz"
 
@@ -52,8 +52,8 @@ numAttempts =
     6
 
 
-word : String
-word =
+answer : String
+answer =
     "tiger"
 
 
@@ -87,9 +87,16 @@ type alias Model =
     }
 
 
+initPreviousAttempts : List PreviousAttempt
+initPreviousAttempts =
+    [ "olive", "eerie", "ridge", "girth" ] |> List.map String.toList |> List.map PreviousAttempt
+
+
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model (Just "") ([ "olive", "eerie", "ridge", "girth", "tiger" ] |> List.map String.toList |> List.map PreviousAttempt) Open
+    ( Model (Just "")
+        initPreviousAttempts
+        (determineEndGameModalState (determineGameState initPreviousAttempts))
     , Cmd.none
     )
 
@@ -102,7 +109,6 @@ type Msg
     = LetterInput Char
     | DeleteInput
     | EnterInput
-    | ShowEndGameModal
     | HideEndGameModal
     | NoOp
 
@@ -111,7 +117,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         LetterInput letter ->
-            case addLetterToCurrentAttempt letter model.currentAttempt of
+            case addLetterToCurrentAttempt model.previousAttempts letter model.currentAttempt of
                 Err _ ->
                     ( model, Cmd.none )
 
@@ -119,7 +125,7 @@ update msg model =
                     ( { model | currentAttempt = Just currentAttempt }, Cmd.none )
 
         DeleteInput ->
-            case deleteLetterFromCurrentAttempt model.currentAttempt of
+            case deleteLetterFromCurrentAttempt model.previousAttempts model.currentAttempt of
                 Err _ ->
                     ( model, Cmd.none )
 
@@ -135,12 +141,10 @@ update msg model =
                     ( { model
                         | previousAttempts = previousAttempts
                         , currentAttempt = resetCurrentAttempt previousAttempts
+                        , endGameModalState = determineEndGameModalState (determineGameState model.previousAttempts)
                       }
                     , Cmd.none
                     )
-
-        ShowEndGameModal ->
-            ( { model | endGameModalState = Open }, Cmd.none )
 
         HideEndGameModal ->
             ( { model | endGameModalState = Closed }, Cmd.none )
@@ -149,76 +153,82 @@ update msg model =
             ( model, Cmd.none )
 
 
-doesPreviousAttemptHasTheWord : List PreviousAttempt -> Bool
-doesPreviousAttemptHasTheWord previousAttempts =
-    previousAttempts |> List.map .letters |> List.map String.fromList |> List.member word
-
-
-determineGameState : List PreviousAttempt -> GameState
-determineGameState previousAttempts =
-    if List.length previousAttempts <= numAttempts then
-        if doesPreviousAttemptHasTheWord previousAttempts then
-            Won
-
-        else
-            Lost
-
-    else
-        OnGoing
-
-
 
 -- ACTIONS
 
 
-addLetterToCurrentAttempt : Char -> Maybe String -> Result String String
-addLetterToCurrentAttempt letter currentAttempt =
-    case currentAttempt of
-        Nothing ->
-            Err "Out of Attempts"
+addLetterToCurrentAttempt : List PreviousAttempt -> Char -> Maybe String -> Result String String
+addLetterToCurrentAttempt previousAttempts letter currentAttempt =
+    case determineGameState previousAttempts of
+        Lost ->
+            Err "Game already lost"
 
-        Just attempt ->
-            if String.length attempt >= wordLength then
-                Err "Out of spaces"
+        Won ->
+            Err "Game already won"
 
-            else if not (String.contains (String.fromChar letter) alphabet) then
-                Err "Not in the alphabet"
+        OnGoing ->
+            case currentAttempt of
+                Nothing ->
+                    Err "Out of Attempts"
 
-            else
-                Ok (attempt ++ String.fromChar letter)
+                Just attempt ->
+                    if String.length attempt >= wordLength then
+                        Err "Out of spaces"
+
+                    else if not (String.contains (String.fromChar letter) alphabet) then
+                        Err "Not in the alphabet"
+
+                    else
+                        Ok (attempt ++ String.fromChar letter)
 
 
-deleteLetterFromCurrentAttempt : Maybe String -> Result String String
-deleteLetterFromCurrentAttempt currentAttempt =
-    case currentAttempt of
-        Nothing ->
-            Err "Out of Attempts"
+deleteLetterFromCurrentAttempt : List PreviousAttempt -> Maybe String -> Result String String
+deleteLetterFromCurrentAttempt previousAttempts currentAttempt =
+    case determineGameState previousAttempts of
+        Lost ->
+            Err "Game already lost"
 
-        Just attempt ->
-            Ok (String.dropRight 1 attempt)
+        Won ->
+            Err "Game already won"
+
+        OnGoing ->
+            case currentAttempt of
+                Nothing ->
+                    Err "Out of Attempts"
+
+                Just attempt ->
+                    Ok (String.dropRight 1 attempt)
 
 
 addNewAttempt : List PreviousAttempt -> Maybe String -> Result String (List PreviousAttempt)
 addNewAttempt previousAttempts currentAttempt =
-    case currentAttempt of
-        Nothing ->
-            Err "Out of Attempts"
+    case determineGameState previousAttempts of
+        Lost ->
+            Err "Game already lost"
 
-        Just attempt ->
-            let
-                previousAttempt =
-                    attempt
-                        |> String.toList
-                        |> PreviousAttempt
-            in
-            if String.length attempt > wordLength then
-                Err "Current attempt somehow too long "
+        Won ->
+            Err "Game already won"
 
-            else if String.length attempt < wordLength then
-                Err "Current attempt too short"
+        OnGoing ->
+            case currentAttempt of
+                Nothing ->
+                    Err "Out of Attempts"
 
-            else
-                Ok (List.append previousAttempts [ previousAttempt ])
+                Just attempt ->
+                    let
+                        previousAttempt =
+                            attempt
+                                |> String.toList
+                                |> PreviousAttempt
+                    in
+                    if String.length attempt > wordLength then
+                        Err "Current attempt somehow too long "
+
+                    else if String.length attempt < wordLength then
+                        Err "Current attempt too short"
+
+                    else
+                        Ok (List.append previousAttempts [ previousAttempt ])
 
 
 resetCurrentAttempt : List PreviousAttempt -> Maybe String
@@ -228,6 +238,41 @@ resetCurrentAttempt previousAttempts =
 
     else
         Just ""
+
+
+
+-- GAME STATE
+
+
+doesPreviousAttemptHasTheAnswer : List PreviousAttempt -> Bool
+doesPreviousAttemptHasTheAnswer previousAttempts =
+    previousAttempts |> List.map .letters |> List.map String.fromList |> List.member answer
+
+
+determineGameState : List PreviousAttempt -> GameState
+determineGameState previousAttempts =
+    if List.length previousAttempts <= numAttempts then
+        if doesPreviousAttemptHasTheAnswer previousAttempts then
+            Won
+
+        else
+            OnGoing
+
+    else
+        Lost
+
+
+determineEndGameModalState : GameState -> ModalState
+determineEndGameModalState gameState =
+    case gameState of
+        Won ->
+            Open
+
+        Lost ->
+            Open
+
+        OnGoing ->
+            Closed
 
 
 
@@ -243,10 +288,10 @@ decideLetterColor index letter =
                 |> String.toLower
 
         letterColor =
-            if String.slice index (index + 1) word == letterStr then
+            if String.slice index (index + 1) answer == letterStr then
                 Green
 
-            else if String.contains letterStr word then
+            else if String.contains letterStr answer then
                 Yellow
 
             else
