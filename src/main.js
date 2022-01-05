@@ -5185,30 +5185,102 @@ var $author$project$Main$Model = F3(
 	function (currentAttempt, previousAttempts, endGameModalState) {
 		return {currentAttempt: currentAttempt, endGameModalState: endGameModalState, previousAttempts: previousAttempts};
 	});
+var $author$project$Main$Closed = {$: 'Closed'};
 var $author$project$Main$Open = {$: 'Open'};
+var $author$project$Main$determineEndGameModalState = function (gameState) {
+	switch (gameState.$) {
+		case 'Won':
+			return $author$project$Main$Open;
+		case 'Lost':
+			return $author$project$Main$Open;
+		default:
+			return $author$project$Main$Closed;
+	}
+};
+var $author$project$Main$Lost = {$: 'Lost'};
+var $author$project$Main$OnGoing = {$: 'OnGoing'};
+var $author$project$Main$Won = {$: 'Won'};
+var $author$project$Main$answer = 'tiger';
+var $elm$core$String$fromList = _String_fromList;
+var $elm$core$List$any = F2(
+	function (isOkay, list) {
+		any:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (isOkay(x)) {
+					return true;
+				} else {
+					var $temp$isOkay = isOkay,
+						$temp$list = xs;
+					isOkay = $temp$isOkay;
+					list = $temp$list;
+					continue any;
+				}
+			}
+		}
+	});
+var $elm$core$List$member = F2(
+	function (x, xs) {
+		return A2(
+			$elm$core$List$any,
+			function (a) {
+				return _Utils_eq(a, x);
+			},
+			xs);
+	});
+var $author$project$Main$doesPreviousAttemptHasTheAnswer = function (previousAttempts) {
+	return A2(
+		$elm$core$List$member,
+		$author$project$Main$answer,
+		A2(
+			$elm$core$List$map,
+			$elm$core$String$fromList,
+			A2(
+				$elm$core$List$map,
+				function ($) {
+					return $.letters;
+				},
+				previousAttempts)));
+};
+var $author$project$Main$numAttempts = 6;
+var $author$project$Main$determineGameState = function (previousAttempts) {
+	return (_Utils_cmp(
+		$elm$core$List$length(previousAttempts),
+		$author$project$Main$numAttempts) < 1) ? ($author$project$Main$doesPreviousAttemptHasTheAnswer(previousAttempts) ? $author$project$Main$Won : $author$project$Main$OnGoing) : $author$project$Main$Lost;
+};
 var $author$project$Main$PreviousAttempt = function (letters) {
 	return {letters: letters};
 };
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $elm$core$String$foldr = _String_foldr;
 var $elm$core$String$toList = function (string) {
 	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
 };
+var $author$project$Main$initPreviousAttempts = A2(
+	$elm$core$List$map,
+	$author$project$Main$PreviousAttempt,
+	A2(
+		$elm$core$List$map,
+		$elm$core$String$toList,
+		_List_fromArray(
+			['olive', 'eerie', 'ridge', 'girth'])));
+var $elm$core$Debug$log = _Debug_log;
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$init = function (_v0) {
 	return _Utils_Tuple2(
 		A3(
 			$author$project$Main$Model,
 			$elm$core$Maybe$Just(''),
-			A2(
-				$elm$core$List$map,
-				$author$project$Main$PreviousAttempt,
+			$author$project$Main$initPreviousAttempts,
+			$author$project$Main$determineEndGameModalState(
 				A2(
-					$elm$core$List$map,
-					$elm$core$String$toList,
-					_List_fromArray(
-						['olive', 'eerie', 'ridge', 'girth', 'tiger']))),
-			$author$project$Main$Open),
+					$elm$core$Debug$log,
+					'wat',
+					$author$project$Main$determineGameState($author$project$Main$initPreviousAttempts)))),
 		$elm$core$Platform$Cmd$none);
 };
 var $elm$json$Json$Decode$field = _Json_decodeField;
@@ -5662,7 +5734,6 @@ var $elm$browser$Browser$Events$onKeyDown = A2($elm$browser$Browser$Events$on, $
 var $author$project$Main$subscriptions = function (_v0) {
 	return $elm$browser$Browser$Events$onKeyDown($author$project$Main$keyDecoder);
 };
-var $author$project$Main$Closed = {$: 'Closed'};
 var $author$project$Main$alphabet = 'abcdefghijklmnopqrstuvwxyz';
 var $elm$core$String$cons = _String_cons;
 var $elm$core$String$fromChar = function (_char) {
@@ -5671,21 +5742,29 @@ var $elm$core$String$fromChar = function (_char) {
 var $elm$core$Basics$ge = _Utils_ge;
 var $elm$core$Basics$not = _Basics_not;
 var $author$project$Main$wordLength = 5;
-var $author$project$Main$addLetterToCurrentAttempt = F2(
-	function (letter, currentAttempt) {
-		if (currentAttempt.$ === 'Nothing') {
-			return $elm$core$Result$Err('Out of Attempts');
-		} else {
-			var attempt = currentAttempt.a;
-			return (_Utils_cmp(
-				$elm$core$String$length(attempt),
-				$author$project$Main$wordLength) > -1) ? $elm$core$Result$Err('Out of spaces') : ((!A2(
-				$elm$core$String$contains,
-				$elm$core$String$fromChar(letter),
-				$author$project$Main$alphabet)) ? $elm$core$Result$Err('Not in the alphabet') : $elm$core$Result$Ok(
-				_Utils_ap(
-					attempt,
-					$elm$core$String$fromChar(letter))));
+var $author$project$Main$addLetterToCurrentAttempt = F3(
+	function (previousAttempts, letter, currentAttempt) {
+		var _v0 = $author$project$Main$determineGameState(previousAttempts);
+		switch (_v0.$) {
+			case 'Lost':
+				return $elm$core$Result$Err('Game already lost');
+			case 'Won':
+				return $elm$core$Result$Err('Game already won');
+			default:
+				if (currentAttempt.$ === 'Nothing') {
+					return $elm$core$Result$Err('Out of Attempts');
+				} else {
+					var attempt = currentAttempt.a;
+					return (_Utils_cmp(
+						$elm$core$String$length(attempt),
+						$author$project$Main$wordLength) > -1) ? $elm$core$Result$Err('Out of spaces') : ((!A2(
+						$elm$core$String$contains,
+						$elm$core$String$fromChar(letter),
+						$author$project$Main$alphabet)) ? $elm$core$Result$Err('Not in the alphabet') : $elm$core$Result$Ok(
+						_Utils_ap(
+							attempt,
+							$elm$core$String$fromChar(letter))));
+				}
 		}
 	});
 var $elm$core$List$append = F2(
@@ -5698,22 +5777,30 @@ var $elm$core$List$append = F2(
 	});
 var $author$project$Main$addNewAttempt = F2(
 	function (previousAttempts, currentAttempt) {
-		if (currentAttempt.$ === 'Nothing') {
-			return $elm$core$Result$Err('Out of Attempts');
-		} else {
-			var attempt = currentAttempt.a;
-			var previousAttempt = $author$project$Main$PreviousAttempt(
-				$elm$core$String$toList(attempt));
-			return (_Utils_cmp(
-				$elm$core$String$length(attempt),
-				$author$project$Main$wordLength) > 0) ? $elm$core$Result$Err('Current attempt somehow too long ') : ((_Utils_cmp(
-				$elm$core$String$length(attempt),
-				$author$project$Main$wordLength) < 0) ? $elm$core$Result$Err('Current attempt too short') : $elm$core$Result$Ok(
-				A2(
-					$elm$core$List$append,
-					previousAttempts,
-					_List_fromArray(
-						[previousAttempt]))));
+		var _v0 = $author$project$Main$determineGameState(previousAttempts);
+		switch (_v0.$) {
+			case 'Lost':
+				return $elm$core$Result$Err('Game already lost');
+			case 'Won':
+				return $elm$core$Result$Err('Game already won');
+			default:
+				if (currentAttempt.$ === 'Nothing') {
+					return $elm$core$Result$Err('Out of Attempts');
+				} else {
+					var attempt = currentAttempt.a;
+					var previousAttempt = $author$project$Main$PreviousAttempt(
+						$elm$core$String$toList(attempt));
+					return (_Utils_cmp(
+						$elm$core$String$length(attempt),
+						$author$project$Main$wordLength) > 0) ? $elm$core$Result$Err('Current attempt somehow too long ') : ((_Utils_cmp(
+						$elm$core$String$length(attempt),
+						$author$project$Main$wordLength) < 0) ? $elm$core$Result$Err('Current attempt too short') : $elm$core$Result$Ok(
+						A2(
+							$elm$core$List$append,
+							previousAttempts,
+							_List_fromArray(
+								[previousAttempt]))));
+				}
 		}
 	});
 var $elm$core$Basics$negate = function (n) {
@@ -5723,16 +5810,24 @@ var $elm$core$String$dropRight = F2(
 	function (n, string) {
 		return (n < 1) ? string : A3($elm$core$String$slice, 0, -n, string);
 	});
-var $author$project$Main$deleteLetterFromCurrentAttempt = function (currentAttempt) {
-	if (currentAttempt.$ === 'Nothing') {
-		return $elm$core$Result$Err('Out of Attempts');
-	} else {
-		var attempt = currentAttempt.a;
-		return $elm$core$Result$Ok(
-			A2($elm$core$String$dropRight, 1, attempt));
-	}
-};
-var $author$project$Main$numAttempts = 6;
+var $author$project$Main$deleteLetterFromCurrentAttempt = F2(
+	function (previousAttempts, currentAttempt) {
+		var _v0 = $author$project$Main$determineGameState(previousAttempts);
+		switch (_v0.$) {
+			case 'Lost':
+				return $elm$core$Result$Err('Game already lost');
+			case 'Won':
+				return $elm$core$Result$Err('Game already won');
+			default:
+				if (currentAttempt.$ === 'Nothing') {
+					return $elm$core$Result$Err('Out of Attempts');
+				} else {
+					var attempt = currentAttempt.a;
+					return $elm$core$Result$Ok(
+						A2($elm$core$String$dropRight, 1, attempt));
+				}
+		}
+	});
 var $author$project$Main$resetCurrentAttempt = function (previousAttempts) {
 	return (_Utils_cmp(
 		$elm$core$List$length(previousAttempts),
@@ -5743,7 +5838,7 @@ var $author$project$Main$update = F2(
 		switch (msg.$) {
 			case 'LetterInput':
 				var letter = msg.a;
-				var _v1 = A2($author$project$Main$addLetterToCurrentAttempt, letter, model.currentAttempt);
+				var _v1 = A3($author$project$Main$addLetterToCurrentAttempt, model.previousAttempts, letter, model.currentAttempt);
 				if (_v1.$ === 'Err') {
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				} else {
@@ -5757,7 +5852,7 @@ var $author$project$Main$update = F2(
 						$elm$core$Platform$Cmd$none);
 				}
 			case 'DeleteInput':
-				var _v2 = $author$project$Main$deleteLetterFromCurrentAttempt(model.currentAttempt);
+				var _v2 = A2($author$project$Main$deleteLetterFromCurrentAttempt, model.previousAttempts, model.currentAttempt);
 				if (_v2.$ === 'Err') {
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 				} else {
@@ -5781,16 +5876,12 @@ var $author$project$Main$update = F2(
 							model,
 							{
 								currentAttempt: $author$project$Main$resetCurrentAttempt(previousAttempts),
+								endGameModalState: $author$project$Main$determineEndGameModalState(
+									$author$project$Main$determineGameState(model.previousAttempts)),
 								previousAttempts: previousAttempts
 							}),
 						$elm$core$Platform$Cmd$none);
 				}
-			case 'ShowEndGameModal':
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{endGameModalState: $author$project$Main$Open}),
-					$elm$core$Platform$Cmd$none);
 			case 'HideEndGameModal':
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -5823,14 +5914,13 @@ var $author$project$Main$Gray = {$: 'Gray'};
 var $author$project$Main$Green = {$: 'Green'};
 var $author$project$Main$Yellow = {$: 'Yellow'};
 var $elm$core$String$toLower = _String_toLower;
-var $author$project$Main$word = 'tiger';
 var $author$project$Main$decideLetterColor = F2(
 	function (index, letter) {
 		var letterStr = $elm$core$String$toLower(
 			$elm$core$String$fromChar(letter));
 		var letterColor = _Utils_eq(
-			A3($elm$core$String$slice, index, index + 1, $author$project$Main$word),
-			letterStr) ? $author$project$Main$Green : (A2($elm$core$String$contains, letterStr, $author$project$Main$word) ? $author$project$Main$Yellow : $author$project$Main$Gray);
+			A3($elm$core$String$slice, index, index + 1, $author$project$Main$answer),
+			letterStr) ? $author$project$Main$Green : (A2($elm$core$String$contains, letterStr, $author$project$Main$answer) ? $author$project$Main$Yellow : $author$project$Main$Gray);
 		return _Utils_Tuple2(letter, letterColor);
 	});
 var $author$project$Main$decideAttemptColors = function (previousAttempt) {
