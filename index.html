@@ -9,6 +9,7 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
 
+    <script src="answers.js"></script>
     <script src="main.js"></script>
 </head>
 
@@ -17,7 +18,9 @@
     <script>
         var app = Elm.Main.init({
             node: document.getElementById('myapp'),
-            flags: { "answers": ["siege", "tiger", "banal"] }
+            flags: {
+                "answers": answers
+            }
         });
     </script>
 </body>
