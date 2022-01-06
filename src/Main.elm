@@ -9,6 +9,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, stopPropagationOn)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
+import Set exposing (Set)
 import Task exposing (attempt)
 
 
@@ -78,11 +79,22 @@ type alias PreviousAttempt =
 
 
 type alias Model =
-    { answer : String
+    { wordList : Set String
+    , answer : String
     , currentAttempt : Maybe String
     , previousAttempts : List PreviousAttempt
     , endGameModalState : ModalState
     }
+
+
+initWordSet : Encode.Value -> Set String
+initWordSet flags =
+    case Decode.decodeValue flagsDecoder flags of
+        Ok answers ->
+            Set.fromList (Array.toList answers)
+
+        Err _ ->
+            Set.empty
 
 
 initAnswer : Encode.Value -> String
@@ -108,6 +120,7 @@ initPreviousAttempts =
 init : Encode.Value -> ( Model, Cmd Msg )
 init flags =
     ( Model
+        (initWordSet flags)
         (initAnswer flags)
         (Just "")
         initPreviousAttempts
@@ -255,6 +268,9 @@ addNewAttempt model =
 
                     else if String.length attempt < wordLength then
                         Err "Current attempt too short"
+
+                    else if Set.member attempt model.wordList then
+                        Err "Doesn't containt word list"
 
                     else
                         Ok (List.append model.previousAttempts [ previousAttempt ])
