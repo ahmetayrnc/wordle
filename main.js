@@ -5267,7 +5267,6 @@ var $author$project$Main$initPreviousAttempts = A2(
 		$elm$core$String$toList,
 		_List_fromArray(
 			['olive', 'eerie', 'ridge', 'girth'])));
-var $elm$core$Debug$log = _Debug_log;
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$init = function (_v0) {
@@ -5277,10 +5276,7 @@ var $author$project$Main$init = function (_v0) {
 			$elm$core$Maybe$Just(''),
 			$author$project$Main$initPreviousAttempts,
 			$author$project$Main$determineEndGameModalState(
-				A2(
-					$elm$core$Debug$log,
-					'wat',
-					$author$project$Main$determineGameState($author$project$Main$initPreviousAttempts)))),
+				$author$project$Main$determineGameState($author$project$Main$initPreviousAttempts))),
 		$elm$core$Platform$Cmd$none);
 };
 var $elm$json$Json$Decode$field = _Json_decodeField;
