@@ -141,7 +141,7 @@ update msg model =
                     ( { model
                         | previousAttempts = previousAttempts
                         , currentAttempt = resetCurrentAttempt previousAttempts
-                        , endGameModalState = determineEndGameModalState (determineGameState model.previousAttempts)
+                        , endGameModalState = determineEndGameModalState (determineGameState previousAttempts)
                       }
                     , Cmd.none
                     )
@@ -251,15 +251,14 @@ doesPreviousAttemptHasTheAnswer previousAttempts =
 
 determineGameState : List PreviousAttempt -> GameState
 determineGameState previousAttempts =
-    if List.length previousAttempts <= numAttempts then
-        if doesPreviousAttemptHasTheAnswer previousAttempts then
-            Won
+    if doesPreviousAttemptHasTheAnswer previousAttempts then
+        Won
 
-        else
-            OnGoing
+    else if List.length previousAttempts == numAttempts then
+        Lost
 
     else
-        Lost
+        OnGoing
 
 
 determineEndGameModalState : GameState -> ModalState
