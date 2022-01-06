@@ -1,1 +1,1 @@
-elm-live src/Main.elm --open -- --output=main.js --debug
+elm-live src/Main.elm --open -- --output=main.js
