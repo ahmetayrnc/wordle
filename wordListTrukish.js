@@ -1,4 +1,4 @@
-answers = [
+wordList = [
     "abacı",
     "abadi",
     "abalı",

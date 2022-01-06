@@ -135,7 +135,7 @@ init flags =
 
 flagsDecoder : Decoder (Array String)
 flagsDecoder =
-    Decode.field "answers" answersDecoder
+    Decode.field "wordList" answersDecoder
 
 
 answersDecoder : Decoder (Array String)
@@ -269,7 +269,7 @@ addNewAttempt model =
                     else if String.length attempt < wordLength then
                         Err "Current attempt too short"
 
-                    else if Set.member attempt model.wordList then
+                    else if not (Set.member attempt model.wordList) then
                         Err "Doesn't containt word list"
 
                     else
