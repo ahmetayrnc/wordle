@@ -1,12 +1,14 @@
 module Main exposing (Model, Msg(..), init, main, update, view)
 
+import Array exposing (Array)
 import Browser
 import Browser.Events
 import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, stopPropagationOn)
-import Json.Decode as Decode
+import Json.Decode as Decode exposing (Decoder)
+import Json.Encode as Encode
 import Task exposing (attempt)
 
 
@@ -14,7 +16,7 @@ import Task exposing (attempt)
 -- MAIN
 
 
-main : Program () Model Msg
+main : Program Encode.Value Model Msg
 main =
     Browser.element
         { init = init
@@ -52,11 +54,6 @@ numAttempts =
     6
 
 
-answer : String
-answer =
-    "tiger"
-
-
 type LetterColor
     = Normal
     | Green
@@ -81,10 +78,26 @@ type alias PreviousAttempt =
 
 
 type alias Model =
-    { currentAttempt : Maybe String
+    { answer : String
+    , currentAttempt : Maybe String
     , previousAttempts : List PreviousAttempt
     , endGameModalState : ModalState
     }
+
+
+initAnswer : Encode.Value -> String
+initAnswer flags =
+    case Decode.decodeValue flagsDecoder flags of
+        Ok answers ->
+            case Array.get 0 answers of
+                Just answer ->
+                    answer
+
+                Nothing ->
+                    "error"
+
+        Err _ ->
+            "error"
 
 
 initPreviousAttempts : List PreviousAttempt
@@ -92,13 +105,29 @@ initPreviousAttempts =
     [ "olive", "eerie", "ridge", "girth" ] |> List.map String.toList |> List.map PreviousAttempt
 
 
-init : () -> ( Model, Cmd Msg )
-init _ =
-    ( Model (Just "")
+init : Encode.Value -> ( Model, Cmd Msg )
+init flags =
+    ( Model
+        (initAnswer flags)
+        (Just "")
         initPreviousAttempts
-        (determineEndGameModalState (determineGameState initPreviousAttempts))
+        (determineEndGameModalState (determineGameState initPreviousAttempts (initAnswer flags)))
     , Cmd.none
     )
+
+
+
+-- DECODERS
+
+
+flagsDecoder : Decoder (Array String)
+flagsDecoder =
+    Decode.field "answers" answersDecoder
+
+
+answersDecoder : Decoder (Array String)
+answersDecoder =
+    Decode.array Decode.string
 
 
 
@@ -117,7 +146,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         LetterInput letter ->
-            case addLetterToCurrentAttempt model.previousAttempts letter model.currentAttempt of
+            case addLetterToCurrentAttempt letter model of
                 Err _ ->
                     ( model, Cmd.none )
 
@@ -125,7 +154,7 @@ update msg model =
                     ( { model | currentAttempt = Just currentAttempt }, Cmd.none )
 
         DeleteInput ->
-            case deleteLetterFromCurrentAttempt model.previousAttempts model.currentAttempt of
+            case deleteLetterFromCurrentAttempt model of
                 Err _ ->
                     ( model, Cmd.none )
 
@@ -133,7 +162,7 @@ update msg model =
                     ( { model | currentAttempt = Just currentAttempt }, Cmd.none )
 
         EnterInput ->
-            case addNewAttempt model.previousAttempts model.currentAttempt of
+            case addNewAttempt model of
                 Err _ ->
                     ( model, Cmd.none )
 
@@ -141,7 +170,7 @@ update msg model =
                     ( { model
                         | previousAttempts = previousAttempts
                         , currentAttempt = resetCurrentAttempt previousAttempts
-                        , endGameModalState = determineEndGameModalState (determineGameState previousAttempts)
+                        , endGameModalState = determineEndGameModalState (determineGameState previousAttempts model.answer)
                       }
                     , Cmd.none
                     )
@@ -157,9 +186,9 @@ update msg model =
 -- ACTIONS
 
 
-addLetterToCurrentAttempt : List PreviousAttempt -> Char -> Maybe String -> Result String String
-addLetterToCurrentAttempt previousAttempts letter currentAttempt =
-    case determineGameState previousAttempts of
+addLetterToCurrentAttempt : Char -> Model -> Result String String
+addLetterToCurrentAttempt letter model =
+    case determineGameState model.previousAttempts model.answer of
         Lost ->
             Err "Game already lost"
 
@@ -167,7 +196,7 @@ addLetterToCurrentAttempt previousAttempts letter currentAttempt =
             Err "Game already won"
 
         OnGoing ->
-            case currentAttempt of
+            case model.currentAttempt of
                 Nothing ->
                     Err "Out of Attempts"
 
@@ -182,9 +211,9 @@ addLetterToCurrentAttempt previousAttempts letter currentAttempt =
                         Ok (attempt ++ String.fromChar letter)
 
 
-deleteLetterFromCurrentAttempt : List PreviousAttempt -> Maybe String -> Result String String
-deleteLetterFromCurrentAttempt previousAttempts currentAttempt =
-    case determineGameState previousAttempts of
+deleteLetterFromCurrentAttempt : Model -> Result String String
+deleteLetterFromCurrentAttempt model =
+    case determineGameState model.previousAttempts model.answer of
         Lost ->
             Err "Game already lost"
 
@@ -192,7 +221,7 @@ deleteLetterFromCurrentAttempt previousAttempts currentAttempt =
             Err "Game already won"
 
         OnGoing ->
-            case currentAttempt of
+            case model.currentAttempt of
                 Nothing ->
                     Err "Out of Attempts"
 
@@ -200,9 +229,9 @@ deleteLetterFromCurrentAttempt previousAttempts currentAttempt =
                     Ok (String.dropRight 1 attempt)
 
 
-addNewAttempt : List PreviousAttempt -> Maybe String -> Result String (List PreviousAttempt)
-addNewAttempt previousAttempts currentAttempt =
-    case determineGameState previousAttempts of
+addNewAttempt : Model -> Result String (List PreviousAttempt)
+addNewAttempt model =
+    case determineGameState model.previousAttempts model.answer of
         Lost ->
             Err "Game already lost"
 
@@ -210,7 +239,7 @@ addNewAttempt previousAttempts currentAttempt =
             Err "Game already won"
 
         OnGoing ->
-            case currentAttempt of
+            case model.currentAttempt of
                 Nothing ->
                     Err "Out of Attempts"
 
@@ -228,7 +257,7 @@ addNewAttempt previousAttempts currentAttempt =
                         Err "Current attempt too short"
 
                     else
-                        Ok (List.append previousAttempts [ previousAttempt ])
+                        Ok (List.append model.previousAttempts [ previousAttempt ])
 
 
 resetCurrentAttempt : List PreviousAttempt -> Maybe String
@@ -244,14 +273,14 @@ resetCurrentAttempt previousAttempts =
 -- GAME STATE
 
 
-doesPreviousAttemptHasTheAnswer : List PreviousAttempt -> Bool
-doesPreviousAttemptHasTheAnswer previousAttempts =
+doesPreviousAttemptHasTheAnswer : List PreviousAttempt -> String -> Bool
+doesPreviousAttemptHasTheAnswer previousAttempts answer =
     previousAttempts |> List.map .letters |> List.map String.fromList |> List.member answer
 
 
-determineGameState : List PreviousAttempt -> GameState
-determineGameState previousAttempts =
-    if doesPreviousAttemptHasTheAnswer previousAttempts then
+determineGameState : List PreviousAttempt -> String -> GameState
+determineGameState previousAttempts answer =
+    if doesPreviousAttemptHasTheAnswer previousAttempts answer then
         Won
 
     else if List.length previousAttempts == numAttempts then
@@ -278,8 +307,8 @@ determineEndGameModalState gameState =
 -- COLORS
 
 
-decideLetterColor : Int -> Char -> ( Char, LetterColor )
-decideLetterColor index letter =
+decideLetterColor : Int -> Char -> String -> ( Char, LetterColor )
+decideLetterColor index letter answer =
     let
         letterStr =
             letter
@@ -299,10 +328,10 @@ decideLetterColor index letter =
     ( letter, letterColor )
 
 
-decideAttemptColors : PreviousAttempt -> List ( Char, LetterColor )
-decideAttemptColors previousAttempt =
+decideAttemptColors : String -> PreviousAttempt -> List ( Char, LetterColor )
+decideAttemptColors answer previousAttempt =
     previousAttempt.letters
-        |> List.indexedMap decideLetterColor
+        |> List.indexedMap (\index -> \letter -> decideLetterColor index letter answer)
 
 
 letterColorToOrder : LetterColor -> Int
@@ -321,10 +350,10 @@ letterColorToOrder letterColor =
             1
 
 
-usedLetters : List PreviousAttempt -> Dict Char LetterColor
-usedLetters previousAttempts =
+usedLetters : List PreviousAttempt -> String -> Dict Char LetterColor
+usedLetters previousAttempts answer =
     previousAttempts
-        |> List.map decideAttemptColors
+        |> List.map (decideAttemptColors answer)
         |> List.concat
         |> List.sortBy (\tuple -> tuple |> Tuple.second |> letterColorToOrder)
         |> Dict.fromList
@@ -387,14 +416,14 @@ view model =
                 ]
             , div [ id "board" ]
                 (List.concat
-                    [ viewPreviousAttempts model.previousAttempts
+                    [ viewPreviousAttempts model.previousAttempts model.answer
                     , viewCurrentAttempt model.currentAttempt
                     , viewFutureAttempts (List.length model.previousAttempts)
                     ]
                 )
             , div [ id "keyboard" ]
                 (List.concat
-                    [ viewLetterButtons (usedLetters model.previousAttempts)
+                    [ viewLetterButtons (usedLetters model.previousAttempts model.answer)
                     , List.singleton viewDeleteButton
                     , List.singleton viewEnterButton
                     ]
@@ -435,11 +464,11 @@ letterColorToColorString letterColor =
             "yellow"
 
 
-viewPreviousAttempt : PreviousAttempt -> List (Html msg)
-viewPreviousAttempt attempt =
+viewPreviousAttempt : PreviousAttempt -> String -> List (Html msg)
+viewPreviousAttempt attempt answer =
     let
         letterColor =
-            \index -> \letter -> letterColorToColorString (Tuple.second (decideLetterColor index letter))
+            \index -> \letter -> letterColorToColorString (Tuple.second (decideLetterColor index letter answer))
 
         letterText =
             \letter -> text (String.fromChar letter)
@@ -448,10 +477,10 @@ viewPreviousAttempt attempt =
         |> List.indexedMap (\index -> \letter -> div [ class "letter-box", class (letterColor index letter) ] [ letterText letter ])
 
 
-viewPreviousAttempts : List PreviousAttempt -> List (Html msg)
-viewPreviousAttempts attempts =
+viewPreviousAttempts : List PreviousAttempt -> String -> List (Html msg)
+viewPreviousAttempts attempts answer =
     attempts
-        |> List.map viewPreviousAttempt
+        |> List.map (\attempt -> viewPreviousAttempt attempt answer)
         |> List.map (div [ class "attempt" ])
 
 
