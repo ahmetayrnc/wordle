@@ -45,11 +45,6 @@ alphabet =
     "abcdefghijklmnopqrstuvwxyz"
 
 
-wordLength : number
-wordLength =
-    5
-
-
 numAttempts : number
 numAttempts =
     6
@@ -73,8 +68,21 @@ type ModalState
     | Closed
 
 
-type alias PreviousAttempt =
-    { letters : List Char
+type alias Word =
+    { l0 : Char
+    , l1 : Char
+    , l2 : Char
+    , l3 : Char
+    , l4 : Char
+    }
+
+
+type alias CurrentAttempt =
+    { l0 : Maybe Char
+    , l1 : Maybe Char
+    , l2 : Maybe Char
+    , l3 : Maybe Char
+    , l4 : Maybe Char
     }
 
 
@@ -82,7 +90,7 @@ type alias Model =
     { wordList : Set String
     , answer : String
     , currentAttempt : Maybe String
-    , previousAttempts : List PreviousAttempt
+    , previousAttempts : List Word
     , endGameModalState : ModalState
     }
 
@@ -112,9 +120,13 @@ initAnswer flags =
             "error"
 
 
-initPreviousAttempts : List PreviousAttempt
+initPreviousAttempts : List Word
 initPreviousAttempts =
-    [ "olive", "eerie", "ridge", "girth" ] |> List.map String.toList |> List.map PreviousAttempt
+    [ Word 'o' 'l' 'i' 'v' 'e'
+    , Word 'e' 'e' 'r' 'i' 'e'
+    , Word 'r' 'i' 'd' 'g' 'e'
+    , Word 'g' 'i' 'r' 't' 'h'
+    ]
 
 
 init : Encode.Value -> ( Model, Cmd Msg )
@@ -196,6 +208,30 @@ update msg model =
 
 
 
+-- WORD HELPERS
+
+
+stringToWord : String -> Result String Word
+stringToWord answer =
+    case String.toList answer of
+        [ l0, l1, l2, l3, l4 ] ->
+            Ok (Word l0 l1 l2 l3 l4)
+
+        _ ->
+            Err "length != 5"
+
+
+wordToString : Word -> String
+wordToString word =
+    String.fromList [ word.l0, word.l1, word.l2, word.l3, word.l4 ]
+
+
+wordLength : Int
+wordLength =
+    5
+
+
+
 -- ACTIONS
 
 
@@ -242,7 +278,7 @@ deleteLetterFromCurrentAttempt model =
                     Ok (String.dropRight 1 attempt)
 
 
-addNewAttempt : Model -> Result String (List PreviousAttempt)
+addNewAttempt : Model -> Result String (List Word)
 addNewAttempt model =
     case determineGameState model.previousAttempts model.answer of
         Lost ->
@@ -257,26 +293,19 @@ addNewAttempt model =
                     Err "Out of Attempts"
 
                 Just attempt ->
-                    let
-                        previousAttempt =
-                            attempt
-                                |> String.toList
-                                |> PreviousAttempt
-                    in
-                    if String.length attempt > wordLength then
-                        Err "Current attempt somehow too long "
+                    case stringToWord attempt of
+                        Err error ->
+                            Err error
 
-                    else if String.length attempt < wordLength then
-                        Err "Current attempt too short"
+                        Ok a ->
+                            if not (Set.member model.answer model.wordList) then
+                                Err "Isn't in the word list"
 
-                    else if not (Set.member attempt model.wordList) then
-                        Err "Doesn't containt word list"
-
-                    else
-                        Ok (List.append model.previousAttempts [ previousAttempt ])
+                            else
+                                Ok (List.append model.previousAttempts [ a ])
 
 
-resetCurrentAttempt : List PreviousAttempt -> Maybe String
+resetCurrentAttempt : List Word -> Maybe String
 resetCurrentAttempt previousAttempts =
     if List.length previousAttempts >= numAttempts then
         Nothing
@@ -289,12 +318,12 @@ resetCurrentAttempt previousAttempts =
 -- GAME STATE
 
 
-doesPreviousAttemptHasTheAnswer : List PreviousAttempt -> String -> Bool
+doesPreviousAttemptHasTheAnswer : List Word -> String -> Bool
 doesPreviousAttemptHasTheAnswer previousAttempts answer =
-    previousAttempts |> List.map .letters |> List.map String.fromList |> List.member answer
+    previousAttempts |> List.map wordToString |> List.member answer
 
 
-determineGameState : List PreviousAttempt -> String -> GameState
+determineGameState : List Word -> String -> GameState
 determineGameState previousAttempts answer =
     if doesPreviousAttemptHasTheAnswer previousAttempts answer then
         Won
@@ -344,9 +373,11 @@ decideLetterColor index letter answer =
     ( letter, letterColor )
 
 
-decideAttemptColors : String -> PreviousAttempt -> List ( Char, LetterColor )
+decideAttemptColors : String -> Word -> List ( Char, LetterColor )
 decideAttemptColors answer previousAttempt =
-    previousAttempt.letters
+    previousAttempt
+        |> wordToString
+        |> String.toList
         |> List.indexedMap (\index -> \letter -> decideLetterColor index letter answer)
 
 
@@ -366,7 +397,7 @@ letterColorToOrder letterColor =
             1
 
 
-usedLetters : List PreviousAttempt -> String -> Dict Char LetterColor
+usedLetters : List Word -> String -> Dict Char LetterColor
 usedLetters previousAttempts answer =
     previousAttempts
         |> List.map (decideAttemptColors answer)
@@ -480,7 +511,7 @@ letterColorToColorString letterColor =
             "yellow"
 
 
-viewPreviousAttempt : PreviousAttempt -> String -> List (Html msg)
+viewPreviousAttempt : Word -> String -> List (Html msg)
 viewPreviousAttempt attempt answer =
     let
         letterColor =
@@ -489,11 +520,13 @@ viewPreviousAttempt attempt answer =
         letterText =
             \letter -> text (String.fromChar letter)
     in
-    attempt.letters
+    attempt
+        |> wordToString
+        |> String.toList
         |> List.indexedMap (\index -> \letter -> div [ class "letter-box", class (letterColor index letter) ] [ letterText letter ])
 
 
-viewPreviousAttempts : List PreviousAttempt -> String -> List (Html msg)
+viewPreviousAttempts : List Word -> String -> List (Html msg)
 viewPreviousAttempts attempts answer =
     attempts
         |> List.map (\attempt -> viewPreviousAttempt attempt answer)
