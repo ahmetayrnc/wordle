@@ -1,0 +1,324 @@
+/*#region Reset*/
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+* {
+    margin: 0;
+}
+
+html, body {
+    height: 100%;
+}
+
+body {
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+img, picture, video, canvas, svg {
+    display: block;
+    max-width: 100%;
+}
+
+input, button, textarea, select {
+    font: inherit;
+}
+
+p, h1, h2, h3, h4, h5, h6 {
+    overflow-wrap: break-word;
+}
+
+#root, #__next {
+    isolation: isolate;
+}
+
+/*#endregion*/
+
+/* Start of CSS */
+
+body {
+    background-color: rgb(18, 18, 19);
+}
+
+#body {
+    height: 100%;
+}
+
+#content {
+    width: 500px;
+    height: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* TOP BAR */
+
+#header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 50px;
+    border-bottom: 1px solid #3a3a3c;
+}
+
+#title {
+    font-weight: 700;
+    font-size: 36px;
+    letter-spacing: 0.2rem;
+    text-transform: uppercase;
+    text-align: center;
+    font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
+    color: rgb(215, 218, 220);
+
+}
+
+.icon-button {
+    height: 24px;
+    width: 24px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #3a3a3c;
+    padding: 0;
+}
+
+/* BOARD */
+
+#board {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.attempt {
+    margin: 0 auto;
+    display: flex;
+    height: 62px;
+    gap: 5px;
+}
+
+.letter-box {
+    display: flex;
+    width: 62px;
+    border: 2px solid rgb(58, 58, 60);
+    font-size: 32px;
+    font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: rgb(215, 218, 220);
+    align-items: center;
+    justify-content: center;
+}
+
+.letter-box.gray {
+    background-color: rgb(58, 58, 60);
+    border-color: rgb(58, 58, 60);
+}
+
+.letter-box.yellow {
+    background-color: rgb(181, 159, 59);
+    border-color: rgb(181, 159, 59);
+}
+
+.letter-box.green {
+    background-color: rgb(83, 141, 78);
+    border-color: rgb(83, 141, 78);
+}
+
+/* KEYBOARD */
+
+#keyboard {
+    height: 200px;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    justify-items: center;
+    grid-template-columns: repeat(20, 24.5px);
+    grid-template-rows: repeat(3, 58px);
+    grid-template-areas:
+        "q q w w e e r r t t y y u u i i o o p p"
+        ". a a s s d d f f g g h h j j k k l l ."
+        "enter enter enter z z x x c c v v b b n n m m delete delete delete";
+    row-gap: 8px;
+}
+
+.button {
+    font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
+    text-transform: uppercase;
+    font-weight: bold;
+    border: 0;
+    padding: 0;
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+    background-color: #818384;
+    color: #d7dadc;
+}
+
+.letter-button {
+    width: 43px;
+    height: 58px;
+    font-size: 13.3px;
+}
+
+.letter-button.gray {
+    background-color: rgb(58, 58, 60);
+}
+
+.letter-button.yellow {
+    background-color: rgb(181, 159, 59);
+}
+
+.letter-button.green {
+    background-color: rgb(83, 141, 78);
+}
+
+
+.enter {
+    grid-area: enter;
+    font-size: 12px;
+    width: 67.5px;
+    height: 58px;
+}
+
+.delete {
+    grid-area: delete;
+    width: 67.5px;
+    height: 58px;
+}
+
+.modal {
+    border-style: solid;
+    border-radius: 8px;
+    border: 1px solid #1a1a1b;
+    background-color: #121213;
+    color: #d7dadc;
+    box-shadow: 0 4px 23px 0 rgb(0 0 0 / 20%);
+    height: 460px;
+    width: 500px;
+    padding: 16px;
+}
+
+.modal-background {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.5);
+
+}
+
+/*#region Grid Letters*/
+.q {
+    grid-area: q;
+}
+
+.w {
+    grid-area: w;
+}
+
+.e {
+    grid-area: e;
+}
+
+.r {
+    grid-area: r;
+}
+
+.t {
+    grid-area: t;
+}
+
+.y {
+    grid-area: y;
+}
+
+.u {
+    grid-area: u;
+}
+
+.i {
+    grid-area: i;
+}
+
+.o {
+    grid-area: o;
+}
+
+.p {
+    grid-area: p;
+}
+
+.a {
+    grid-area: a;
+}
+
+.s {
+    grid-area: s;
+}
+
+.d {
+    grid-area: d;
+}
+
+.f {
+    grid-area: f;
+}
+
+.g {
+    grid-area: g;
+}
+
+.h {
+    grid-area: h;
+}
+
+.j {
+    grid-area: j;
+}
+
+.k {
+    grid-area: k;
+}
+
+.l {
+    grid-area: l;
+}
+
+.z {
+    grid-area: z;
+}
+
+.x {
+    grid-area: x;
+}
+
+.c {
+    grid-area: c;
+}
+
+.v {
+    grid-area: v;
+}
+
+.b {
+    grid-area: b;
+}
+
+.n {
+    grid-area: n;
+}
+
+.m {
+    grid-area: m;
+}
+
+/*#endregion*/
